@@ -19,6 +19,7 @@ from tradingagents.agents.utils.news_data_tools import (
     get_global_news
 )
 
+
 def create_msg_delete():
     def delete_messages(state):
         """Clear messages and add placeholder for Anthropic compatibility"""
@@ -33,6 +34,3 @@ def create_msg_delete():
         return {"messages": removal_operations + [placeholder]}
 
     return delete_messages
-
-
-        

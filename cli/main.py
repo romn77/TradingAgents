@@ -1,4 +1,3 @@
-from typing import Optional
 import datetime
 import typer
 from pathlib import Path
@@ -11,21 +10,18 @@ load_dotenv()
 from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.live import Live
-from rich.columns import Columns
 from rich.markdown import Markdown
 from rich.layout import Layout
 from rich.text import Text
 from rich.table import Table
 from collections import deque
 import time
-from rich.tree import Tree
 from rich import box
 from rich.align import Align
 from rich.rule import Rule
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
-from cli.models import AnalystType
 from cli.utils import *
 from cli.announcements import fetch_announcements, display_announcements
 from cli.stats_handler import StatsCallbackHandler
