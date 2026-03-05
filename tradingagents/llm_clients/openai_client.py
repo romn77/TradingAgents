@@ -29,7 +29,10 @@ class UnifiedChatOpenAI(ChatOpenAI):
 
 
 class OpenAIClient(BaseLLMClient):
-    """Client for OpenAI, Ollama, OpenRouter, and xAI providers."""
+    """Client for OpenAI-compatible providers.
+
+    Supported: OpenAI, xAI, OpenRouter, DeepSeek, Ollama.
+    """
 
     def __init__(
         self,
@@ -55,13 +58,24 @@ class OpenAIClient(BaseLLMClient):
             api_key = os.environ.get("OPENROUTER_API_KEY")
             if api_key:
                 llm_kwargs["api_key"] = api_key
+        elif self.provider == "xiaohumini":
+            llm_kwargs["base_url"] = "https://xiaohumini.site/v1"
+            api_key = os.environ.get("XIAOHUMINI_API_KEY")
+            if api_key:
+                llm_kwargs["api_key"] = api_key
         elif self.provider == "ollama":
             llm_kwargs["base_url"] = "http://localhost:11434/v1"
             llm_kwargs["api_key"] = "ollama"  # Ollama doesn't require auth
         elif self.base_url:
             llm_kwargs["base_url"] = self.base_url
 
-        for key in ("timeout", "max_retries", "reasoning_effort", "api_key", "callbacks"):
+        for key in (
+            "timeout",
+            "max_retries",
+            "reasoning_effort",
+            "api_key",
+            "callbacks",
+        ):
             if key in self.kwargs:
                 llm_kwargs[key] = self.kwargs[key]
 

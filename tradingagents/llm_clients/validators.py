@@ -63,17 +63,28 @@ VALID_MODELS = {
         "grok-4-fast-reasoning",
         "grok-4-fast-non-reasoning",
     ],
+    "deepseek": [
+        # DeepSeek V3/R1 series
+        "deepseek-chat",
+        "deepseek-reasoner",
+    ],
+    "xiaohumini": [
+        "gpt-5.2",
+        "claude-sonnet-4-6",
+        "gemini-3.1-pro-preview",
+        "grok-4.2",
+    ],
 }
 
 
 def validate_model(provider: str, model: str) -> bool:
     """Check if model name is valid for the given provider.
 
-    For ollama, openrouter - any model is accepted.
+    For ollama, openrouter, deepseek, xiaohumini - any model is accepted.
     """
     provider_lower = provider.lower()
 
-    if provider_lower in ("ollama", "openrouter"):
+    if provider_lower in ("ollama", "openrouter", "deepseek", "xiaohumini"):
         return True
 
     if provider_lower not in VALID_MODELS:
