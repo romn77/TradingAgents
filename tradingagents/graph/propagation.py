@@ -15,13 +15,14 @@ class Propagator:
         self.max_recur_limit = max_recur_limit
 
     def create_initial_state(
-        self, company_name: str, trade_date: str
+        self, company_name: str, trade_date: str, output_language: str = "en"
     ) -> Dict[str, Any]:
         """Create the initial state for the agent graph."""
         return {
             "messages": [("human", company_name)],
             "company_of_interest": company_name,
             "trade_date": str(trade_date),
+            "output_language": output_language,
             "investment_debate_state": InvestDebateState(
                 {"history": "", "current_response": "", "count": 0}
             ),
@@ -47,7 +48,7 @@ class Propagator:
             callbacks: Optional list of callback handlers for tool execution tracking.
                        Note: LLM callbacks are handled separately via LLM constructor.
         """
-        config = {"recursion_limit": self.max_recur_limit}
+        config: Dict[str, Any] = {"recursion_limit": self.max_recur_limit}
         if callbacks:
             config["callbacks"] = callbacks
         return {

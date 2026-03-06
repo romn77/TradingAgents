@@ -1,5 +1,9 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from tradingagents.agents.utils.agent_utils import get_stock_data, get_indicators
+from tradingagents.agents.utils.agent_utils import (
+    get_stock_data,
+    get_indicators,
+    get_language_instruction,
+)
 
 
 def create_market_analyst(llm):
@@ -8,6 +12,8 @@ def create_market_analyst(llm):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
         company_name = state["company_of_interest"]
+        output_language = state.get("output_language", "en")
+        language_instruction = get_language_instruction(output_language)
 
         tools = [
             get_stock_data,
@@ -54,6 +60,7 @@ Volume-Based Indicators:
                     " If you or any other assistant has the FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** or deliverable,"
                     " prefix your response with FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** so the team knows to stop."
                     " You have access to the following tools: {tool_names}.\n{system_message}"
+                    "\n{language_instruction}"
                     "For your reference, the current date is {current_date}. The company we want to look at is {ticker}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),
@@ -64,6 +71,7 @@ Volume-Based Indicators:
         prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(ticker=ticker)
+        prompt = prompt.partial(language_instruction=language_instruction)
 
         chain = prompt | llm.bind_tools(tools)
 

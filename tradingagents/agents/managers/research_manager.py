@@ -1,3 +1,4 @@
+from tradingagents.agents.utils.agent_utils import get_language_instruction
 
 
 def create_research_manager(llm, memory):
@@ -9,6 +10,8 @@ def create_research_manager(llm, memory):
         fundamentals_report = state["fundamentals_report"]
 
         investment_debate_state = state["investment_debate_state"]
+        output_language = state.get("output_language", "en")
+        language_instruction = get_language_instruction(output_language)
 
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
@@ -33,7 +36,8 @@ Here are your past reflections on mistakes:
 
 Here is the debate:
 Debate History:
-{history}"""
+{history}
+{language_instruction}"""
         response = llm.invoke(prompt)
 
         new_investment_debate_state = {
