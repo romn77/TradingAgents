@@ -4,6 +4,8 @@ langchain-openai
 langchain-experimental
 pandas
 yfinance
+akshare
+tushare
 stockstats
 langgraph
 rank-bm25
