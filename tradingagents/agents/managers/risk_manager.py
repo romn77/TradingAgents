@@ -1,3 +1,4 @@
+from tradingagents.agents.utils.agent_utils import get_language_instruction
 
 
 def create_risk_manager(llm, memory):
@@ -12,6 +13,8 @@ def create_risk_manager(llm, memory):
         fundamentals_report = state["fundamentals_report"]
         sentiment_report = state["sentiment_report"]
         trader_plan = state["investment_plan"]
+        output_language = state.get("output_language", "en")
+        language_instruction = get_language_instruction(output_language)
 
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
@@ -39,7 +42,8 @@ Deliverables:
 
 ---
 
-Focus on actionable insights and continuous improvement. Build on past lessons, critically evaluate all perspectives, and ensure each decision advances better outcomes."""
+Focus on actionable insights and continuous improvement. Build on past lessons, critically evaluate all perspectives, and ensure each decision advances better outcomes.
+{language_instruction}"""
 
         response = llm.invoke(prompt)
 
@@ -50,8 +54,12 @@ Focus on actionable insights and continuous improvement. Build on past lessons, 
             "conservative_history": risk_debate_state["conservative_history"],
             "neutral_history": risk_debate_state["neutral_history"],
             "latest_speaker": "Judge",
-            "current_aggressive_response": risk_debate_state["current_aggressive_response"],
-            "current_conservative_response": risk_debate_state["current_conservative_response"],
+            "current_aggressive_response": risk_debate_state[
+                "current_aggressive_response"
+            ],
+            "current_conservative_response": risk_debate_state[
+                "current_conservative_response"
+            ],
             "current_neutral_response": risk_debate_state["current_neutral_response"],
             "count": risk_debate_state["count"],
         }

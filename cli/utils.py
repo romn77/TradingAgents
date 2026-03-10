@@ -1,7 +1,10 @@
 import questionary
 from typing import List
+from rich.console import Console
 
 from cli.models import AnalystType
+
+console = Console()
 
 ANALYST_ORDER = [
     ("Market Analyst", AnalystType.MARKET),
@@ -47,8 +50,10 @@ def get_analysis_date() -> str:
 
     date = questionary.text(
         "Enter the analysis date (YYYY-MM-DD):",
-        validate=lambda x: validate_date(x.strip())
-        or "Please enter a valid date in YYYY-MM-DD format.",
+        validate=lambda x: (
+            validate_date(x.strip())
+            or "Please enter a valid date in YYYY-MM-DD format."
+        ),
         style=questionary.Style(
             [
                 ("text", "fg:green"),
@@ -335,6 +340,29 @@ def select_llm_provider() -> tuple[str, str]:
     print(f"You selected: {display_name}\tURL: {url}")
 
     return display_name, url
+
+
+def select_output_language() -> str:
+    choice = questionary.select(
+        "Select output language:",
+        choices=[
+            questionary.Choice("English (en)", "en"),
+            questionary.Choice("简体中文 (cn)", "cn"),
+        ],
+        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
+        style=questionary.Style(
+            [
+                ("selected", "fg:cyan noinherit"),
+                ("highlighted", "fg:cyan noinherit"),
+                ("pointer", "fg:cyan noinherit"),
+            ]
+        ),
+    ).ask()
+
+    if choice is None:
+        raise ValueError("No output language selected")
+
+    return choice
 
 
 def ask_openai_reasoning_effort() -> str:

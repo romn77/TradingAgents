@@ -1,11 +1,17 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from tradingagents.agents.utils.agent_utils import get_news, get_global_news
+from tradingagents.agents.utils.agent_utils import (
+    get_news,
+    get_global_news,
+    get_language_instruction,
+)
 
 
 def create_news_analyst(llm):
     def news_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
+        output_language = state.get("output_language", "en")
+        language_instruction = get_language_instruction(output_language)
 
         tools = [
             get_news,
@@ -28,6 +34,7 @@ def create_news_analyst(llm):
                     " If you or any other assistant has the FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** or deliverable,"
                     " prefix your response with FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** so the team knows to stop."
                     " You have access to the following tools: {tool_names}.\n{system_message}"
+                    "\n{language_instruction}"
                     "For your reference, the current date is {current_date}. We are looking at the company {ticker}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),
@@ -38,6 +45,7 @@ def create_news_analyst(llm):
         prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(ticker=ticker)
+        prompt = prompt.partial(language_instruction=language_instruction)
 
         chain = prompt | llm.bind_tools(tools)
         result = chain.invoke(state["messages"])
