@@ -222,3 +222,8 @@ reports/
 # Vscode
 .vscode/
 .sisyphus/
+
+# Frontend artifacts
+web/frontend/node_modules/
+web/frontend/.next/
+web/frontend/out/
