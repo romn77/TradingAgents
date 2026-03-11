@@ -39,7 +39,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch structure when reportId changes
   useEffect(() => {
     const loadStructure = async () => {
       try {
@@ -61,7 +60,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     loadStructure();
   }, [reportId]);
 
-  // Fetch content when selectedTab or selectedFile changes
   useEffect(() => {
     const loadContent = async () => {
       if (!structure) return;
@@ -96,7 +94,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     loadContent();
   }, [reportId, selectedTab, selectedFile, structure]);
 
-  // When switching tabs, auto-select first file if category has files
   const handleTabChange = useCallback(
     (tabKey: string) => {
       setSelectedTab(tabKey);
@@ -117,8 +114,8 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
 
   if (!structure) {
     return (
-      <div className="flex-1 min-w-0 p-4 md:p-7">
-        <div className="card-surface fade-in p-8 text-sm text-slate-600">
+      <div className="flex-1 min-w-0 p-4 md:p-7 lg:p-9">
+        <div className="glass-panel fade-in rounded-2xl p-8 text-sm text-slate-600">
           {isLoading
             ? "Loading report..."
             : error
@@ -129,7 +126,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     );
   }
 
-  // Get available category tabs
   const availableCategories = Object.entries(CATEGORY_MAP).filter(
     ([key]) => structure.categories[key] && structure.categories[key].length > 0
   );
@@ -140,68 +136,97 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       : [];
 
   return (
-    <div className="flex-1 min-w-0 md:h-screen flex flex-col p-3 md:p-5 gap-3 md:gap-4">
-      <header className="card-surface fade-in shrink-0 p-4 md:p-5">
+    <div className="flex min-w-0 flex-1 flex-col gap-3 p-3 md:h-screen md:gap-4 md:p-5 lg:p-7">
+      <header className="glass-panel fade-in shrink-0 rounded-2xl p-4 md:p-5">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--primary)]">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <p className="justify-self-start rounded-full border border-[color:rgba(236,91,19,0.35)] bg-[var(--primary-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--primary-strong)]">
               Trading Report
             </p>
-            <h2 className="font-heading text-xl md:text-2xl font-semibold tracking-tight text-slate-900">
+            <h2 className="justify-self-center text-center font-heading text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
               {structure.ticker}
             </h2>
+            <p className="justify-self-end rounded-full border border-[var(--border)] bg-white/78 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+              {reportId}
+            </p>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div
+            className="flex flex-wrap gap-2 pb-1"
+            role="tablist"
+            aria-label="Report stages"
+          >
             <button
+              id="report-tab-complete"
+              type="button"
               onClick={() => handleTabChange("complete")}
-              className={`rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition ${
+              className={`interactive-button focus-ring whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
                 selectedTab === "complete"
-                  ? "bg-[var(--primary)] text-white shadow-sm"
-                  : "panel-muted text-slate-600 hover:text-[var(--primary-strong)]"
+                  ? "border-[color:rgba(236,91,19,0.82)] bg-[linear-gradient(135deg,#ec5b13_0%,#d74f0d_100%)] text-white shadow-[0_10px_20px_rgba(236,91,19,0.24)]"
+                  : "border-[var(--border)] bg-white/90 text-slate-600 hover:border-[color:rgba(236,91,19,0.45)] hover:text-[var(--primary-strong)]"
               }`}
+              role="tab"
+              aria-selected={selectedTab === "complete"}
+              aria-controls="report-content-panel"
             >
               Complete Report
             </button>
 
             {availableCategories.map(([key, meta]) => (
               <button
+                id={`report-tab-${key}`}
+                type="button"
                 key={key}
                 onClick={() => handleTabChange(key)}
-                className={`rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition ${
+                className={`interactive-button focus-ring whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
                   selectedTab === key
-                    ? "bg-[var(--primary)] text-white shadow-sm"
-                    : "panel-muted text-slate-600 hover:text-[var(--primary-strong)]"
+                    ? "border-[color:rgba(236,91,19,0.82)] bg-[linear-gradient(135deg,#ec5b13_0%,#d74f0d_100%)] text-white shadow-[0_10px_20px_rgba(236,91,19,0.24)]"
+                    : "border-[var(--border)] bg-white/90 text-slate-600 hover:border-[color:rgba(236,91,19,0.45)] hover:text-[var(--primary-strong)]"
                 }`}
+                role="tab"
+                aria-selected={selectedTab === key}
+                aria-controls="report-content-panel"
               >
                 {meta.label}
               </button>
             ))}
           </div>
+
+          {selectedTab !== "complete" && categoryFiles.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2 border-t border-[var(--border)] pt-3"
+              role="tablist"
+              aria-label="Stage files"
+            >
+              {categoryFiles.map((file) => (
+                <button
+                  id={`report-file-${file}`}
+                  type="button"
+                  key={file}
+                  onClick={() => setSelectedFile(file)}
+                  className={`interactive-button focus-ring rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all ${
+                    selectedFile === file
+                      ? "border border-[color:rgba(236,91,19,0.42)] bg-[var(--primary-soft)] text-[var(--primary-strong)] shadow-[0_6px_16px_rgba(236,91,19,0.14)]"
+                      : "border border-[var(--border)] bg-white/86 text-slate-500 hover:border-[color:rgba(21,55,96,0.28)] hover:text-[var(--accent)]"
+                  }`}
+                  role="tab"
+                  aria-selected={selectedFile === file}
+                  aria-controls="report-content-panel"
+                >
+                  {FILE_LABELS[file] || file}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
-      {selectedTab !== "complete" && categoryFiles.length > 0 && (
-        <div className="card-surface fade-in shrink-0 px-3 py-2 md:px-4 md:py-3">
-          <div className="flex gap-2 overflow-x-auto">
-            {categoryFiles.map((file) => (
-              <button
-                key={file}
-                onClick={() => setSelectedFile(file)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition ${
-                  selectedFile === file
-                    ? "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
-                    : "text-slate-500 hover:bg-slate-100"
-                }`}
-              >
-                {FILE_LABELS[file] || file}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <section className="card-surface fade-in flex-1 min-h-0 overflow-hidden">
+      <section
+        id="report-content-panel"
+        className="card-surface fade-in flex-1 min-h-0 overflow-hidden rounded-2xl"
+        role="tabpanel"
+        aria-live="polite"
+      >
         <div className="h-full overflow-y-auto p-5 md:p-8">
           {selectedTab === "complete" ? (
             <MarkdownContent content={content} isLoading={isLoading} />
