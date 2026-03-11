@@ -128,7 +128,21 @@ export XAI_API_KEY=...             # xAI (Grok)
 export OPENROUTER_API_KEY=...      # OpenRouter
 export DEEPSEEK_API_KEY=...        # DeepSeek
 export ALPHA_VANTAGE_API_KEY=...   # Alpha Vantage
+export TUSHARE_TOKEN=...           # Tushare (required for CN market data)
 ```
+
+### CN Data Source Setup (akshare + tushare)
+
+TradingAgents supports CN-market routing through `akshare` and `tushare` under the same tool interfaces.
+
+- Keep `market: "auto"` to detect CN/US by symbol automatically (e.g. `600519`, `600519.SH`, `sh600519`, `SZ000001` for CN).
+- Set `market: "cn"` to force CN routing.
+- Configure vendor priority with:
+  - `tool_vendors` (highest precedence)
+  - `market_overrides[market][category]`
+  - `data_vendors[category]`
+
+If a configured vendor is unavailable or unsupported for a method, the router applies semantic fallback to the next available vendor. For example, CN news can fallback from `akshare`/`tushare` to `yfinance` for global coverage when capability-gated errors occur.
 
 For local models, configure Ollama with `llm_provider: "ollama"` in your config.
 

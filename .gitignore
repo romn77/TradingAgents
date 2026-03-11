@@ -221,3 +221,4 @@ reports/
 
 # Vscode
 .vscode/
+.sisyphus/
