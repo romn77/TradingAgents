@@ -117,9 +117,13 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
 
   if (!structure) {
     return (
-      <div className="p-8">
-        <div className="text-gray-400">
-          {isLoading ? "Loading report..." : error ? `Error: ${error}` : "No report data"}
+      <div className="flex-1 min-w-0 p-4 md:p-7">
+        <div className="card-surface fade-in p-8 text-sm text-slate-600">
+          {isLoading
+            ? "Loading report..."
+            : error
+              ? `Error: ${error}`
+              : "No report data"}
         </div>
       </div>
     );
@@ -136,71 +140,80 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       : [];
 
   return (
-    <div className="flex-1 flex flex-col h-screen bg-gray-900 text-gray-100">
-      {/* Header with ticker and main tabs */}
-      <div className="border-b border-gray-700 bg-gray-800 p-4">
-        <h2 className="text-2xl font-bold mb-4">{structure.ticker}</h2>
+    <div className="flex-1 min-w-0 md:h-screen flex flex-col p-3 md:p-5 gap-3 md:gap-4">
+      <header className="card-surface fade-in shrink-0 p-4 md:p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--primary)]">
+              Trading Report
+            </p>
+            <h2 className="font-heading text-xl md:text-2xl font-semibold tracking-tight text-slate-900">
+              {structure.ticker}
+            </h2>
+          </div>
 
-        {/* Main tab navigation */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => handleTabChange("complete")}
-            className={`px-4 py-2 rounded font-medium whitespace-nowrap transition ${
-              selectedTab === "complete"
-                ? "bg-orange-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            Complete Report
-          </button>
-
-          {availableCategories.map(([key, meta]) => (
+          <div className="flex gap-2 overflow-x-auto pb-1">
             <button
-              key={key}
-              onClick={() => handleTabChange(key)}
-              className={`px-4 py-2 rounded font-medium whitespace-nowrap transition ${
-                selectedTab === key
-                  ? "bg-orange-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              onClick={() => handleTabChange("complete")}
+              className={`rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition ${
+                selectedTab === "complete"
+                  ? "bg-[var(--primary)] text-white shadow-sm"
+                  : "panel-muted text-slate-600 hover:text-[var(--primary-strong)]"
               }`}
             >
-              {meta.label}
+              Complete Report
             </button>
-          ))}
+
+            {availableCategories.map(([key, meta]) => (
+              <button
+                key={key}
+                onClick={() => handleTabChange(key)}
+                className={`rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition ${
+                  selectedTab === key
+                    ? "bg-[var(--primary)] text-white shadow-sm"
+                    : "panel-muted text-slate-600 hover:text-[var(--primary-strong)]"
+                }`}
+              >
+                {meta.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Sub-tabs for category files */}
       {selectedTab !== "complete" && categoryFiles.length > 0 && (
-        <div className="border-b border-gray-700 bg-gray-750 px-4 py-2 flex gap-2 overflow-x-auto">
-          {categoryFiles.map((file) => (
-            <button
-              key={file}
-              onClick={() => setSelectedFile(file)}
-              className={`px-3 py-2 rounded text-sm whitespace-nowrap transition ${
-                selectedFile === file
-                  ? "bg-gray-600 text-orange-400"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-              }`}
-            >
-              {FILE_LABELS[file] || file}
-            </button>
-          ))}
+        <div className="card-surface fade-in shrink-0 px-3 py-2 md:px-4 md:py-3">
+          <div className="flex gap-2 overflow-x-auto">
+            {categoryFiles.map((file) => (
+              <button
+                key={file}
+                onClick={() => setSelectedFile(file)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition ${
+                  selectedFile === file
+                    ? "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                {FILE_LABELS[file] || file}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Content area */}
-      <div className="flex-1 overflow-y-auto p-8">
-        {selectedTab === "complete" ? (
-          <MarkdownContent content={content} isLoading={isLoading} />
-        ) : categoryFiles.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
-            No data available for this category
-          </div>
-        ) : (
-          <MarkdownContent content={content} isLoading={isLoading} />
-        )}
-      </div>
+      <section className="card-surface fade-in flex-1 min-h-0 overflow-hidden">
+        <div className="h-full overflow-y-auto p-5 md:p-8">
+          {selectedTab === "complete" ? (
+            <MarkdownContent content={content} isLoading={isLoading} />
+          ) : categoryFiles.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              No data available for this category
+            </div>
+          ) : (
+            <MarkdownContent content={content} isLoading={isLoading} />
+          )}
+        </div>
+      </section>
     </div>
   );
 }

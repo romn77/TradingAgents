@@ -22,16 +22,16 @@ export const MarkdownContent = React.memo(
     if (isLoading) {
       return (
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-700 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-700 rounded w-full"></div>
-          <div className="h-4 bg-gray-700 rounded w-5/6"></div>
-          <div className="h-4 bg-gray-700 rounded w-4/5"></div>
+          <div className="h-8 w-3/4 rounded bg-slate-200"></div>
+          <div className="h-4 w-full rounded bg-slate-200"></div>
+          <div className="h-4 w-5/6 rounded bg-slate-200"></div>
+          <div className="h-4 w-4/5 rounded bg-slate-200"></div>
         </div>
       );
     }
 
     return (
-      <article className="prose prose-invert prose-sm max-w-none">
+      <article className="markdown-content max-w-none fade-in">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {processedContent}
         </ReactMarkdown>
