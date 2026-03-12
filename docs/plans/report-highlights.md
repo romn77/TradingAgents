@@ -1,11 +1,11 @@
 # Report Highlights Optimization
 
 ## TL;DR
-> **Summary**: Modify 4 analyst LLM prompts to output a structured JSON highlights block (`json-highlights` fenced code block) at the end of each report, then build frontend components that parse this block and render highlight cards above the markdown narrative for quick scanning.
-> **Deliverables**: Modified analyst prompts (4 files), highlights parser utility, HighlightCards component, updated MarkdownContent, updated globals.css
-> **Effort**: Medium
-> **Parallel**: YES - 3 waves
-> **Critical Path**: Task 1 (schema design) → Tasks 2-5 (prompts, parallel) → Task 6 (parser) → Task 7 (highlight cards component) → Task 8 (integrate into MarkdownContent) → Task 9 (CSS) → Task 10 (integration test)
+> **Summary**: Modify **all 12 prompt-producing agent files** (4 analysts + 2 researchers + 1 research manager + 1 trader + 3 risk debators + 1 risk manager) to append a structured JSON highlights block (`json-highlights` fenced code block) to each individual report, then build frontend components that parse this block and render highlight cards above the markdown narrative for quick scanning.
+> **Deliverables**: Modified agent prompts (12 files), highlights parser/strip utility, HighlightCards component, updated MarkdownContent, updated ReportViewer, updated globals.css
+> **Effort**: Medium-Large
+> **Parallel**: YES - 4 waves
+> **Critical Path**: Baseline verification → Task 1 (schema + parsing/stripping design) → Tasks 2-13 (prompts, parallel) → Tasks 14 and 16 (component + CSS) → Task 15 (MarkdownContent + ReportViewer integration) → Final verification
 
 ## Context
 ### Original Request
@@ -13,84 +13,118 @@ Optimize the report display system. Reports are currently pure markdown rendered
 
 ### Interview Summary
 - **Approach**: Hybrid — modify LLM prompts + build frontend highlight cards
-- **Scope**: 4 analyst prompts + frontend components. New reports only.
+- **Scope**: All 12 prompt-producing agent files + frontend components. New reports only.
 - **Backward compat**: Old reports render as-is (no highlights). No backend changes.
 - **Test strategy**: Tests after implementation. QA scenarios in plan.
-- **Language**: Bilingual support (EN/CN). Schema keys in English, values in report language.
+- **Language**: Bilingual support (EN/CN). JSON keys and enum literals stay in English; free-form values follow the report language.
+
+### Coverage Map: Reports → Agents
+
+| 目录 | 报告文件 | 对应 Agent 文件 | 原计划 | 扩展 |
+|------|---------|----------------|--------|------|
+| `1_analysts/` | `market.md` | `analysts/market_analyst.py` | ✅ | — |
+| | `fundamentals.md` | `analysts/fundamentals_analyst.py` | ✅ | — |
+| | `sentiment.md` | `analysts/social_media_analyst.py` | ✅ | — |
+| | `news.md` | `analysts/news_analyst.py` | ✅ | — |
+| `2_research/` | `bull.md` | `researchers/bull_researcher.py` | ❌ | ✅ NEW |
+| | `bear.md` | `researchers/bear_researcher.py` | ❌ | ✅ NEW |
+| | `manager.md` | `managers/research_manager.py` | ❌ | ✅ NEW |
+| `3_trading/` | `trader.md` | `trader/trader.py` | ❌ | ✅ NEW |
+| `4_risk/` | `aggressive.md` | `risk_mgmt/aggressive_debator.py` | ❌ | ✅ NEW |
+| | `conservative.md` | `risk_mgmt/conservative_debator.py` | ❌ | ✅ NEW |
+| | `neutral.md` | `risk_mgmt/neutral_debator.py` | ❌ | ✅ NEW |
+| `5_portfolio/` | `decision.md` | `managers/risk_manager.py` | ❌ | ✅ NEW |
+| 根目录 | `complete_report.md` | 合成拼接（非单一 agent） | — | 前端特殊处理 |
+
+> **Note**: `complete_report.md` 是子报告的原样拼接合成。由于新子报告会各自包含 `json-highlights`，本迭代 **不在 Complete Report 页面渲染 highlight cards**；前端只负责在 complete 视图中剥离所有 `json-highlights` block，避免原始 JSON 泄露到页面。
 
 ### Metis Review (gaps addressed)
 - **LLM format drift**: Enforced fail-open parsing — if JSON block is absent/malformed, render original markdown unchanged.
-- **Duplicate blocks**: Use FIRST `json-highlights` block found. Ignore subsequent ones.
+- **Complete report safety**: `complete_report.md` strips ALL `json-highlights` blocks and renders markdown only.
+- **Duplicate blocks**: Individual report parsing uses the FIRST `json-highlights` block found. Ignore subsequent ones.
 - **FINAL TRANSACTION PROPOSAL fallback**: If missing from JSON, parse from markdown text as fallback.
 - **Security**: No `dangerouslySetInnerHTML`. Card values rendered as plain text. react-markdown safe defaults preserved.
+- **Bilingual contract**: JSON keys and enum literals remain stable English constants even when the narrative is Chinese.
+- **Prompt conflicts**: Prompts that currently say "without special formatting" or "always conclude with FINAL TRANSACTION PROPOSAL" must be rewritten to explicitly allow a trailing `json-highlights` block without weakening the existing narrative contract.
 - **Schema sprawl**: Minimal required keys per category + optional extras. Unrecognized fields ignored gracefully.
 - **Race conditions**: Preserve existing `requestIdRef` flow in ReportViewer.tsx.
 - **Backend unchanged**: Zero API/endpoint/AgentState changes.
 
 ## Work Objectives
 ### Core Objective
-Add structured highlight cards above markdown narrative in the report viewer, powered by structured JSON output from analyst LLM prompts.
+Add structured highlight cards above markdown narrative in the report viewer for all individual report categories, powered by structured JSON output from all 12 prompt-producing agent files, while keeping `complete_report.md` in markdown-only mode with all highlight blocks stripped.
 
 ### Deliverables
-- 4 modified analyst prompt files with JSON highlights schema appended to system prompts
-- `web/frontend/lib/highlights.ts` — parser utility (extract JSON block, validate, type-safe)
+- 12 modified agent prompt files with JSON highlights schema appended to prompts
+- `web/frontend/lib/highlights.ts` — parser/strip utility (extract JSON block, validate, type-safe, strip all blocks for complete report mode)
 - `web/frontend/components/HighlightCards.tsx` — renders highlight cards from parsed data
-- Updated `web/frontend/components/MarkdownContent.tsx` — integrates parser + highlight cards
+- Updated `web/frontend/components/MarkdownContent.tsx` — integrates parser/stripper + highlight cards
+- Updated `web/frontend/components/ReportViewer.tsx` — passes complete-vs-subreport highlight mode
 - Updated `web/frontend/app/globals.css` — highlight card styles
-- Minor update to `web/frontend/components/ReportViewer.tsx` — pass category context to MarkdownContent
 
 ### Definition of Done (verifiable conditions with commands)
 1. `cd web/frontend && npm run lint` exits 0
 2. `cd web/frontend && npm run build` exits 0 (Next.js production build succeeds)
-3. New reports generated with modified prompts contain `json-highlights` block
-4. Frontend renders highlight cards above markdown for reports with valid JSON block
-5. Frontend renders original markdown unchanged for reports without JSON block (old reports)
-6. Frontend renders original markdown unchanged for reports with malformed JSON block
+3. All 12 modified Python prompt files import successfully
+4. `grep -rl "json-highlights" tradingagents/agents/ | wc -l` returns 12
+5. Individual report views render highlight cards for reports with a valid JSON block
+6. Complete report view renders no highlight cards and no raw `json-highlights` blocks
+7. Frontend renders original markdown unchanged for reports without JSON block (old reports)
+8. Individual report views render original markdown unchanged for malformed JSON blocks
+9. At least one newly generated report is verified end-to-end; if runtime generation cannot be executed in the environment, do not mark the feature complete
 
 ### Must Have
-- Per-category highlight schemas (market, fundamentals, sentiment, news)
-- Signal badge (BUY/HOLD/SELL) prominently displayed
+- Per-category highlight schemas for all 12 prompt producers / 9 UI category types
+- Signal/decision badge (BUY/HOLD/SELL) prominently displayed
 - Fail-open parsing: invalid/missing JSON → graceful fallback to markdown-only
-- Bilingual support: English schema keys, values in report language
+- Bilingual support: English schema keys and enum literals, free-form values in report language
+- Complete report view strips all `json-highlights` blocks and stays markdown-only
 - Responsive design matching existing glass-panel aesthetic
 
 ### Must NOT Have (guardrails)
 - No backend API changes
 - No AgentState schema changes
-- No modification to researcher/trader/risk/portfolio prompts
 - No old report backward compatibility processing
 - No `dangerouslySetInnerHTML` or rehype-raw
 - No new npm dependencies (use existing react-markdown, remark-gfm, tailwind)
 - No test infrastructure setup (no jest/vitest config changes)
+- No modification to `complete_report.md` generation logic
 
 ## Verification Strategy
 > ZERO HUMAN INTERVENTION — all verification is agent-executed.
-- Test decision: Tests after + agent QA scenarios
-- QA policy: Every task has agent-executed scenarios (lint, build, visual check via Playwright)
+- Test decision: tests-after + static verification + runtime generation check
+- Static QA policy: lint, typecheck/build, prompt import checks, grep/file-scope checks are mandatory
+- Runtime QA policy: generate at least one fresh report through the existing pipeline if current environment supports it; if generation is blocked by credentials/network/runtime limits, stop and report the feature as runtime-unverified rather than claiming completion
+- UI QA policy: use existing browser tooling or existing Playwright setup if already available; do NOT add new browser test infrastructure as part of this feature
 - Evidence: `.sisyphus/evidence/task-{N}-{slug}.{ext}`
 
 ## Execution Strategy
 ### Parallel Execution Waves
 
-**Wave 1: Foundation** (2 tasks, parallel)
-- Task 1: Define highlight schemas + types (TypeScript)
-- Task 2: Define parser utility (depends on schema types from Task 1 — sequential within wave)
-
-Actually revised — Task 1 includes both schema + parser since they're tightly coupled:
+**Wave 0: Baseline Validation** (1 task)
+- Task 0: Record current frontend baseline (`lint`, `build`) and confirm whether any standalone `@/lib/api` alias issue reproduces outside the sandbox. No product code change unless the bug is independently reproduced.
 
 **Wave 1: Foundation** (1 task)
-- Task 1: Highlight schema types + parser utility (`highlights.ts`)
+- Task 1: Highlight schema types + parser utility (`highlights.ts`) — covers all 12 prompt producers / 9 UI category types
 
-**Wave 2: Prompt modifications** (4 tasks, fully parallel)
+**Wave 2: Prompt modifications** (12 tasks, fully parallel)
 - Task 2: Market analyst prompt
 - Task 3: Fundamentals analyst prompt
 - Task 4: Social media analyst prompt
 - Task 5: News analyst prompt
+- Task 6: Bull researcher prompt
+- Task 7: Bear researcher prompt
+- Task 8: Research manager prompt
+- Task 9: Trader prompt
+- Task 10: Aggressive debator prompt
+- Task 11: Conservative debator prompt
+- Task 12: Neutral debator prompt
+- Task 13: Risk manager prompt (portfolio decision)
 
-**Wave 3: Frontend components** (3 tasks, sequential within wave)
-- Task 6: HighlightCards component
-- Task 7: Integrate into MarkdownContent + ReportViewer updates
-- Task 8: CSS styles for highlight cards
+**Wave 3: Frontend components** (2 parallel tasks + 1 integration task)
+- Task 14: HighlightCards component (expanded for all categories)
+- Task 16: CSS styles for highlight cards
+- Task 15: Integrate into MarkdownContent + ReportViewer updates
 
 **Wave 4: Verification** (final verification wave)
 - F1-F4: Standard final verification agents
@@ -98,31 +132,45 @@ Actually revised — Task 1 includes both schema + parser since they're tightly 
 ### Dependency Matrix
 | Task | Depends On | Blocks |
 |------|-----------|--------|
-| 1 (Schema + Parser) | — | 2,3,4,5,6,7,8 |
-| 2 (Market prompt) | 1 | 10 |
-| 3 (Fundamentals prompt) | 1 | 10 |
-| 4 (Sentiment prompt) | 1 | 10 |
-| 5 (News prompt) | 1 | 10 |
-| 6 (HighlightCards) | 1 | 7 |
-| 7 (Integration) | 1,6 | 8 |
-| 8 (CSS) | 7 | — |
-
-### Agent Dispatch Summary
-| Wave | Tasks | Categories |
-|------|-------|------------|
-| Wave 1 | 1 task | `deep` |
-| Wave 2 | 4 tasks | `quick` × 4 |
-| Wave 3 | 3 tasks | `visual-engineering` × 3 |
-| Wave 4 | 4 tasks | Final verification |
+| 0 (Baseline validation) | — | none |
+| 1 (Schema + Parser) | — | 2-13,14,15,16 |
+| 2-13 (All prompts) | 1 | Final verification |
+| 14 (HighlightCards) | 1 | 15 |
+| 16 (CSS) | 1 | 15 |
+| 15 (Integration) | 1,14,16 | Final verification |
 
 ## TODOs
+
+- [ ] 0. Record Frontend Baseline + Alias Repro Status
+
+  **What to do**:
+  Record the current frontend baseline before feature work:
+  - Run `cd web/frontend && npm run lint`
+  - Run `cd web/frontend && npm run build`
+  - Record whether a real `@/lib/api` alias issue can be reproduced outside the sandboxed environment
+
+  This task is a validation gate, not a product change. The current repository already resolves `@/lib/api` for lint/build, so do **not** edit `next.config.ts` unless the alias bug is independently reproduced with a concrete stack trace.
+
+  **Must NOT do**:
+  - Do NOT change the project structure or move files
+  - Do NOT remove the `@/*` path alias from `tsconfig.json`
+  - Do NOT add speculative Turbopack config just because the issue was mentioned in planning
+
+  **Parallelization**: Can Parallel: NO | Wave 0 | Blocks: none | Blocked By: none
+
+  **Acceptance Criteria**:
+  - [ ] `cd web/frontend && npm run lint` exits 0
+  - [ ] `cd web/frontend && npm run build` exits 0
+  - [ ] Any alias failure is either reproduced with exact evidence or explicitly marked as not reproduced
+
+  **Commit**: NO
 
 - [ ] 1. Define Highlight Schema Types + Parser Utility
 
   **What to do**:
   Create `web/frontend/lib/highlights.ts` containing:
 
-  1. TypeScript interfaces for each category's highlight schema:
+  1. TypeScript interfaces for **all** category highlight schemas:
 
   ```typescript
   // Common fields across all categories
@@ -132,130 +180,162 @@ Actually revised — Task 1 includes both schema + parser since they're tightly 
     summary: string; // 1-2 sentence executive summary
   }
 
+  // === ANALYST SCHEMAS (1_analysts/) ===
+
   interface MarketHighlights extends BaseHighlights {
     category: "market";
     trend_direction: "bullish" | "bearish" | "neutral" | "mixed";
     key_levels: {
-      support: string[];      // e.g. ["600", "605"]
-      resistance: string[];   // e.g. ["615", "620"]
+      support: string[];
+      resistance: string[];
     };
     indicators: Array<{
-      name: string;           // e.g. "RSI", "MACD"
-      value: string;          // e.g. "40.6", "negative"
-      interpretation: string; // e.g. "oversold territory"
+      name: string;
+      value: string;
+      interpretation: string;
     }>;
-    volatility?: string;      // e.g. "high", "moderate"
+    volatility?: string;
   }
 
   interface FundamentalsHighlights extends BaseHighlights {
     category: "fundamentals";
     metrics: Array<{
-      name: string;           // e.g. "P/E Ratio", "Revenue Growth"
-      value: string;          // e.g. "25.3", "+12.5%"
-      assessment: string;     // e.g. "above industry average"
+      name: string;
+      value: string;
+      assessment: string;
     }>;
-    financial_health?: string; // e.g. "strong", "moderate", "weak"
+    financial_health?: string;
   }
 
   interface SentimentHighlights extends BaseHighlights {
     category: "sentiment";
     overall_sentiment: "positive" | "negative" | "neutral" | "mixed";
-    sentiment_score?: string;  // e.g. "65/100"
-    key_topics: string[];      // e.g. ["AI expansion", "earnings beat"]
-    social_buzz?: string;      // e.g. "high", "moderate", "low"
+    sentiment_score?: string;
+    key_topics: string[];
+    social_buzz?: string;
   }
 
   interface NewsHighlights extends BaseHighlights {
     category: "news";
     market_impact: "positive" | "negative" | "neutral" | "mixed";
     key_events: Array<{
-      event: string;           // e.g. "Fed rate decision"
-      impact: string;          // e.g. "bearish for tech"
+      event: string;
+      impact: string;
     }>;
-    macro_outlook?: string;    // e.g. "cautious", "optimistic"
+    macro_outlook?: string;
   }
 
-  type ReportHighlights = MarketHighlights | FundamentalsHighlights | SentimentHighlights | NewsHighlights;
+  // === RESEARCHER SCHEMAS (2_research/) ===
+
+  interface ResearcherHighlights extends BaseHighlights {
+    category: "bull_case" | "bear_case";
+    stance: "bullish" | "bearish";
+    key_arguments: Array<{
+      point: string;
+      evidence: string;
+    }>;
+    counterpoints?: string[];
+  }
+
+  interface ResearchManagerHighlights extends BaseHighlights {
+    category: "research_decision";
+    decision: "BUY" | "HOLD" | "SELL";
+    aligned_with: "bull" | "bear";
+    rationale: string;
+    action_items: string[];
+  }
+
+  // === TRADER SCHEMA (3_trading/) ===
+
+  interface TraderHighlights extends BaseHighlights {
+    category: "trader";
+    decision: "BUY" | "HOLD" | "SELL";
+    entry_exit: {
+      action: string;
+      exit_target?: string;
+      stop_loss?: string;
+      re_entry?: string;
+    };
+    risk_factors: string[];
+  }
+
+  // === RISK DEBATE SCHEMAS (4_risk/) ===
+
+  interface RiskDebateHighlights extends BaseHighlights {
+    category: "risk_aggressive" | "risk_conservative" | "risk_neutral";
+    stance_label: string;
+    core_argument: string;
+    risk_assessment: "high" | "moderate" | "low";
+    key_recommendations: string[];
+  }
+
+  // === PORTFOLIO DECISION SCHEMA (5_portfolio/) ===
+
+  interface PortfolioDecisionHighlights extends BaseHighlights {
+    category: "portfolio_decision";
+    final_decision: "BUY" | "HOLD" | "SELL";
+    decision_basis: string;
+    strategic_actions: Array<{
+      action: string;
+      priority: string;
+    }>;
+    risk_warnings: string[];
+  }
+
+  type ReportHighlights =
+    | MarketHighlights | FundamentalsHighlights | SentimentHighlights | NewsHighlights
+    | ResearcherHighlights | ResearchManagerHighlights
+    | TraderHighlights
+    | RiskDebateHighlights
+    | PortfolioDecisionHighlights;
   ```
 
-  2. Parser function:
+  2. Parser functions:
   ```typescript
-  const HIGHLIGHTS_FENCE = "```json-highlights";
-  const FENCE_END = "```";
-
-  /**
-   * Extract and parse the json-highlights block from markdown content.
-   * Returns { highlights, cleanMarkdown } where:
-   *   - highlights: parsed ReportHighlights or null if absent/invalid
-   *   - cleanMarkdown: original markdown with the json-highlights block removed
-   *
-   * FAIL-OPEN: any parse error returns null highlights + original markdown unchanged.
-   */
   export function parseHighlights(markdown: string): {
     highlights: ReportHighlights | null;
     cleanMarkdown: string;
   }
+
+  export function stripHighlightsBlocks(markdown: string): string;
   ```
 
-  3. Parsing rules:
+  3. Parsing/stripping rules:
      - Find FIRST occurrence of ` ```json-highlights ` fence
      - Extract content between opening fence and next ` ``` ` closing fence
      - Parse as JSON, validate required fields (`signal`, `summary`, `category`)
+     - Validate enum literals as stable English constants (`BUY`, `HOLD`, `SELL`, `bullish`, `bearish`, etc.)
      - If valid: return parsed highlights + markdown with that block stripped
      - If invalid/missing: return null highlights + original markdown unchanged
      - FALLBACK: If `signal` is missing from JSON, attempt regex extraction of `FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL**` from full markdown
+     - `stripHighlightsBlocks(markdown)` removes ALL `json-highlights` fenced blocks, regardless of whether their payload parses, and is used only for `complete_report.md`
 
   **Must NOT do**:
   - Do NOT add any new npm dependencies
   - Do NOT modify any backend files
   - Do NOT use `eval()` or unsafe parsing
 
-  **Recommended Agent Profile**:
-  - Category: `deep` — Reason: Core schema design + parser logic needs careful typing and edge case handling
-  - Skills: [`software-architecture`] — typed interface design
-  - Omitted: [`frontend-patterns`] — not UI work, pure utility
-
-  **Parallelization**: Can Parallel: NO | Wave 1 | Blocks: 2,3,4,5,6,7,8 | Blocked By: none
+  **Parallelization**: Can Parallel: NO | Wave 1 | Blocks: 2-16 | Blocked By: none
 
   **References**:
-  - Pattern: `web/frontend/lib/api.ts:1-70` — existing lib utility pattern, export style, TypeScript conventions
-  - Type: `web/frontend/components/MarkdownContent.tsx:7-10` — interface pattern for component props
-  - Sample: `reports/QQQ_20260306_174555/1_analysts/market.md` — actual report format to parse
-  - Sample: `reports/SPY_20260305_155836/1_analysts/market.md` — English report variant
+  - Pattern: `web/frontend/lib/api.ts:1-70` — existing lib utility pattern
+  - Sample: `reports/SPY_20260311_222019/1_analysts/market.md` — actual report format
+  - Complete report assembly: `cli/main.py:724-726` — confirms `complete_report.md` is a concatenation of subreports
 
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] File `web/frontend/lib/highlights.ts` exists and exports `parseHighlights` function and all type interfaces
-  - [ ] `cd web/frontend && npx tsc --noEmit` exits 0 (no type errors)
+  **Acceptance Criteria**:
+  - [ ] File `web/frontend/lib/highlights.ts` exists and exports `parseHighlights`, `stripHighlightsBlocks`, and all type interfaces
+  - [ ] `cd web/frontend && npx tsc --noEmit` exits 0
   - [ ] `cd web/frontend && npm run lint` exits 0
 
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Valid json-highlights block parsed correctly
-    Tool: Bash (node script or inline)
-    Steps: Create test markdown with valid json-highlights block, import parseHighlights, call it
-    Expected: highlights object has correct fields, cleanMarkdown has block removed
-    Evidence: .sisyphus/evidence/task-1-parser-valid.txt
-
-  Scenario: Missing json-highlights block falls back gracefully
-    Tool: Bash
-    Steps: Call parseHighlights with plain markdown (no json-highlights fence)
-    Expected: highlights is null, cleanMarkdown equals original input unchanged
-    Evidence: .sisyphus/evidence/task-1-parser-missing.txt
-
-  Scenario: Malformed JSON falls back gracefully
-    Tool: Bash
-    Steps: Call parseHighlights with markdown containing invalid JSON in json-highlights block
-    Expected: highlights is null, cleanMarkdown equals original input unchanged
-    Evidence: .sisyphus/evidence/task-1-parser-malformed.txt
-
-  Scenario: Signal fallback from markdown text
-    Tool: Bash
-    Steps: Call parseHighlights with JSON block missing signal field but markdown contains FINAL TRANSACTION PROPOSAL: **SELL**
-    Expected: highlights.signal === "SELL"
-    Evidence: .sisyphus/evidence/task-1-parser-fallback.txt
-  ```
-
   **Commit**: YES | Message: `feat(highlights): add highlight schema types and parser utility` | Files: [`web/frontend/lib/highlights.ts`]
+
+### Shared Prompt Rules (Tasks 2-13)
+
+- Every prompt must explicitly say: keep the `json-highlights` fence, JSON keys, and enum literals in English exactly as shown, even when the rest of the report is in Chinese.
+- Free-form string values inside the JSON block should follow the report language (`en` or `zh-CN`).
+- Prompts that currently require "without special formatting" must be revised to mean: narrative stays conversational/plain, then append one final `json-highlights` block.
+- Prompts that currently require `FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL**` must preserve that line as the final narrative line, then append the JSON block after it.
+- Do not add more than one `json-highlights` block per report.
 
 - [ ] 2. Modify Market Analyst Prompt
 
@@ -286,57 +366,33 @@ Actually revised — Task 1 includes both schema + parser since they're tightly 
   \`\`\`
   ```
 
-  The exact insertion point is in the string concatenation at line 49, after `""" Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."""`.
-
   **Must NOT do**:
   - Do NOT change the core analysis instructions (lines 24-48)
   - Do NOT modify the prompt template structure (lines 52-68)
   - Do NOT change any tool bindings or function signature
   - Do NOT remove the existing "Markdown table" instruction
 
-  **Recommended Agent Profile**:
-  - Category: `quick` — Reason: Single file, small text insertion in a prompt string
-  - Skills: [] — no special skills needed
-  - Omitted: [`prompt-engineering`] — the prompt text is provided verbatim
-
   **Parallelization**: Can Parallel: YES | Wave 2 | Blocks: none | Blocked By: 1
 
   **References**:
-  - Pattern: `tradingagents/agents/analysts/market_analyst.py:23-50` — current prompt structure, string concatenation pattern
-  - Schema: Task 1 `MarketHighlights` interface — field names and types to include in prompt
-  - Sample: `reports/QQQ_20260306_174555/1_analysts/market.md` — what current output looks like
+  - Pattern: `tradingagents/agents/analysts/market_analyst.py:23-50` — current prompt structure
 
-  **Acceptance Criteria** (agent-executable only):
+  **Acceptance Criteria**:
   - [ ] `market_analyst.py` contains `json-highlights` fence instruction text
   - [ ] `market_analyst.py` still contains original "Markdown table" instruction
-  - [ ] `python -c "from tradingagents.agents.analysts.market_analyst import create_market_analyst"` exits 0 (import succeeds)
-
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Prompt modification preserves import
-    Tool: Bash
-    Steps: python -c "from tradingagents.agents.analysts.market_analyst import create_market_analyst; print('OK')"
-    Expected: Prints "OK", exits 0
-    Evidence: .sisyphus/evidence/task-2-market-import.txt
-
-  Scenario: Prompt contains json-highlights schema
-    Tool: Bash (grep)
-    Steps: grep -c "json-highlights" tradingagents/agents/analysts/market_analyst.py
-    Expected: At least 1 match
-    Evidence: .sisyphus/evidence/task-2-market-grep.txt
-  ```
+  - [ ] `python -c "from tradingagents.agents.analysts.market_analyst import create_market_analyst"` exits 0
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to market analyst prompt` | Files: [`tradingagents/agents/analysts/market_analyst.py`]
 
 - [ ] 3. Modify Fundamentals Analyst Prompt
 
   **What to do**:
-  Edit `tradingagents/agents/analysts/fundamentals_analyst.py` line 28 to append instructions for the structured JSON highlights block.
+  Edit `tradingagents/agents/analysts/fundamentals_analyst.py` line 28.
 
   Add after the existing "Markdown table" instruction:
 
   ```
-  After the markdown table, also append a structured highlights block in the following exact format (replace values with your actual analysis findings). This block MUST use the json-highlights code fence:
+  After the markdown table, also append a structured highlights block in the following exact format:
 
   \`\`\`json-highlights
   {
@@ -345,59 +401,30 @@ Actually revised — Task 1 includes both schema + parser since they're tightly 
     "signal_confidence": "high or medium or low",
     "summary": "1-2 sentence executive summary of fundamental analysis",
     "metrics": [
-      {"name": "metric name (e.g. P/E Ratio, Revenue Growth, EPS)", "value": "current value", "assessment": "brief assessment"}
+      {"name": "metric name", "value": "current value", "assessment": "brief assessment"}
     ],
     "financial_health": "strong or moderate or weak"
   }
   \`\`\`
   ```
 
-  **Must NOT do**:
-  - Do NOT change the core analysis instructions
-  - Do NOT modify prompt template structure or tool bindings
-  - Do NOT remove the existing "Markdown table" instruction
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
 
-  **Recommended Agent Profile**:
-  - Category: `quick` — Reason: Single file, small text insertion
-  - Skills: [] — no special skills needed
-
-  **Parallelization**: Can Parallel: YES | Wave 2 | Blocks: none | Blocked By: 1
-
-  **References**:
-  - Pattern: `tradingagents/agents/analysts/fundamentals_analyst.py:26-29` — current prompt, string concatenation
-  - Schema: Task 1 `FundamentalsHighlights` interface
-  - Sample: `reports/QQQ_20260306_174555/1_analysts/fundamentals.md`
-
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] `fundamentals_analyst.py` contains `json-highlights` fence instruction text
+  **Acceptance Criteria**:
+  - [ ] `fundamentals_analyst.py` contains `json-highlights` fence
   - [ ] `python -c "from tradingagents.agents.analysts.fundamentals_analyst import create_fundamentals_analyst"` exits 0
 
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Prompt modification preserves import
-    Tool: Bash
-    Steps: python -c "from tradingagents.agents.analysts.fundamentals_analyst import create_fundamentals_analyst; print('OK')"
-    Expected: Prints "OK", exits 0
-    Evidence: .sisyphus/evidence/task-3-fundamentals-import.txt
-
-  Scenario: Prompt contains json-highlights schema
-    Tool: Bash
-    Steps: grep -c "json-highlights" tradingagents/agents/analysts/fundamentals_analyst.py
-    Expected: At least 1 match
-    Evidence: .sisyphus/evidence/task-3-fundamentals-grep.txt
-  ```
-
-  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to fundamentals analyst prompt` | Files: [`tradingagents/agents/analysts/fundamentals_analyst.py`]
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to fundamentals analyst prompt`
 
 - [ ] 4. Modify Social Media Analyst Prompt
 
   **What to do**:
-  Edit `tradingagents/agents/analysts/social_media_analyst.py` line 19 to append instructions for the structured JSON highlights block.
+  Edit `tradingagents/agents/analysts/social_media_analyst.py` line 19.
 
   Add after the existing "Markdown table" instruction:
 
   ```
-  After the markdown table, also append a structured highlights block in the following exact format (replace values with your actual analysis findings). This block MUST use the json-highlights code fence:
+  After the markdown table, also append a structured highlights block:
 
   \`\`\`json-highlights
   {
@@ -413,53 +440,16 @@ Actually revised — Task 1 includes both schema + parser since they're tightly 
   \`\`\`
   ```
 
-  **Must NOT do**:
-  - Do NOT change the core analysis instructions
-  - Do NOT modify prompt template structure or tool bindings
-  - Do NOT remove the existing "Markdown table" instruction
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
 
-  **Recommended Agent Profile**:
-  - Category: `quick` — Reason: Single file, small text insertion
-  - Skills: [] — no special skills needed
-
-  **Parallelization**: Can Parallel: YES | Wave 2 | Blocks: none | Blocked By: 1
-
-  **References**:
-  - Pattern: `tradingagents/agents/analysts/social_media_analyst.py:17-19` — current prompt
-  - Schema: Task 1 `SentimentHighlights` interface
-  - Sample: `results/QQQ/2026-03-06/reports/sentiment_report.md`
-
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] `social_media_analyst.py` contains `json-highlights` fence instruction text
-  - [ ] `python -c "from tradingagents.agents.analysts.social_media_analyst import create_social_media_analyst"` exits 0
-
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Prompt modification preserves import
-    Tool: Bash
-    Steps: python -c "from tradingagents.agents.analysts.social_media_analyst import create_social_media_analyst; print('OK')"
-    Expected: Prints "OK", exits 0
-    Evidence: .sisyphus/evidence/task-4-sentiment-import.txt
-
-  Scenario: Prompt contains json-highlights schema
-    Tool: Bash
-    Steps: grep -c "json-highlights" tradingagents/agents/analysts/social_media_analyst.py
-    Expected: At least 1 match
-    Evidence: .sisyphus/evidence/task-4-sentiment-grep.txt
-  ```
-
-  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to social media analyst prompt` | Files: [`tradingagents/agents/analysts/social_media_analyst.py`]
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to social media analyst prompt`
 
 - [ ] 5. Modify News Analyst Prompt
 
   **What to do**:
-  Edit `tradingagents/agents/analysts/news_analyst.py` line 23 to append instructions for the structured JSON highlights block.
-
-  Add after the existing "Markdown table" instruction:
+  Edit `tradingagents/agents/analysts/news_analyst.py` line 23.
 
   ```
-  After the markdown table, also append a structured highlights block in the following exact format (replace values with your actual analysis findings). This block MUST use the json-highlights code fence:
-
   \`\`\`json-highlights
   {
     "category": "news",
@@ -475,370 +465,372 @@ Actually revised — Task 1 includes both schema + parser since they're tightly 
   \`\`\`
   ```
 
-  **Must NOT do**:
-  - Do NOT change the core analysis instructions
-  - Do NOT modify prompt template structure or tool bindings
-  - Do NOT remove the existing "Markdown table" instruction
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
 
-  **Recommended Agent Profile**:
-  - Category: `quick` — Reason: Single file, small text insertion
-  - Skills: [] — no special skills needed
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to news analyst prompt`
 
-  **Parallelization**: Can Parallel: YES | Wave 2 | Blocks: none | Blocked By: 1
-
-  **References**:
-  - Pattern: `tradingagents/agents/analysts/news_analyst.py:21-23` — current prompt
-  - Schema: Task 1 `NewsHighlights` interface
-  - Sample: `results/QQQ/2026-03-06/reports/news_report.md`
-
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] `news_analyst.py` contains `json-highlights` fence instruction text
-  - [ ] `python -c "from tradingagents.agents.analysts.news_analyst import create_news_analyst"` exits 0
-
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Prompt modification preserves import
-    Tool: Bash
-    Steps: python -c "from tradingagents.agents.analysts.news_analyst import create_news_analyst; print('OK')"
-    Expected: Prints "OK", exits 0
-    Evidence: .sisyphus/evidence/task-5-news-import.txt
-
-  Scenario: Prompt contains json-highlights schema
-    Tool: Bash
-    Steps: grep -c "json-highlights" tradingagents/agents/analysts/news_analyst.py
-    Expected: At least 1 match
-    Evidence: .sisyphus/evidence/task-5-news-grep.txt
-  ```
-
-  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to news analyst prompt` | Files: [`tradingagents/agents/analysts/news_analyst.py`]
-
-- [ ] 6. Build HighlightCards Component
+- [ ] 6. Modify Bull Researcher Prompt
 
   **What to do**:
-  Create `web/frontend/components/HighlightCards.tsx` — a React component that renders structured highlight data as visually prominent cards above the markdown narrative.
+  Edit `tradingagents/agents/researchers/bull_researcher.py`. In the f-string prompt (line 25-44), insert the following block before `{language_instruction}` (line 43):
+
+  ```
+  After your complete analysis, append a structured highlights block in the following exact format:
+
+  \`\`\`json-highlights
+  {
+    "category": "bull_case",
+    "signal": "BUY or HOLD or SELL",
+    "signal_confidence": "high or medium or low",
+    "summary": "1-2 sentence executive summary of your bull case",
+    "stance": "bullish",
+    "key_arguments": [
+      {"point": "core argument title", "evidence": "supporting evidence or data"}
+    ],
+    "counterpoints": ["rebuttal to bear argument 1", "rebuttal 2"]
+  }
+  \`\`\`
+  ```
+
+  **Must NOT do**:
+  - Do NOT change the core analysis instructions or debate logic
+  - Do NOT modify the state management (`new_investment_debate_state`)
+  - Do NOT change the `Bull Analyst:` prefix in the argument formatting
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **References**:
+  - Pattern: `tradingagents/agents/researchers/bull_researcher.py:25-44` — f-string prompt
+
+  **Acceptance Criteria**:
+  - [ ] `bull_researcher.py` contains `json-highlights` fence
+  - [ ] `python -c "from tradingagents.agents.researchers.bull_researcher import create_bull_researcher"` exits 0
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to bull researcher prompt`
+
+- [ ] 7. Modify Bear Researcher Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/researchers/bear_researcher.py`. Same pattern as Task 6, but with `category: "bear_case"` and `stance: "bearish"`.
+
+  Insert before `{language_instruction}` (line 45):
+
+  ```
+  After your complete analysis, append a structured highlights block:
+
+  \`\`\`json-highlights
+  {
+    "category": "bear_case",
+    "signal": "BUY or HOLD or SELL",
+    "signal_confidence": "high or medium or low",
+    "summary": "1-2 sentence executive summary of your bear case",
+    "stance": "bearish",
+    "key_arguments": [
+      {"point": "core argument title", "evidence": "supporting evidence or data"}
+    ],
+    "counterpoints": ["rebuttal to bull argument 1", "rebuttal 2"]
+  }
+  \`\`\`
+  ```
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to bear researcher prompt`
+
+- [ ] 8. Modify Research Manager Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/managers/research_manager.py`. Replace the existing "without special formatting" wording so it explicitly allows one trailing `json-highlights` block, then insert the block before `{language_instruction}` in the prompt (line 40):
+
+  ```
+  After your complete decision, append a structured highlights block:
+
+  \`\`\`json-highlights
+  {
+    "category": "research_decision",
+    "signal": "BUY or HOLD or SELL",
+    "signal_confidence": "high or medium or low",
+    "summary": "1-2 sentence executive summary of your ruling",
+    "decision": "BUY or HOLD or SELL",
+    "aligned_with": "bull or bear",
+    "rationale": "one sentence explaining why you sided this way",
+    "action_items": ["action 1", "action 2", "action 3"]
+  }
+  \`\`\`
+  ```
+
+  **Must NOT do**:
+  - Do NOT change the `investment_plan` state output
+  - Do NOT modify the debate facilitation logic
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Acceptance Criteria**:
+  - [ ] `research_manager.py` contains `json-highlights` fence
+  - [ ] `research_manager.py` no longer forbids a trailing structured block via "without special formatting" wording
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to research manager prompt`
+
+- [ ] 9. Modify Trader Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/trader/trader.py`. Revise the system message so that:
+  - the report still includes `FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL**`
+  - that line remains the **final narrative line**
+  - one trailing `json-highlights` block is appended after that line
+
+  Do not merely append a conflicting sentence after the current "always conclude your response" wording; rewrite the instruction so the contract is internally consistent.
+
+  ```
+  Also append a structured highlights block at the end of your response:
+
+  \`\`\`json-highlights
+  {
+    "category": "trader",
+    "signal": "BUY or HOLD or SELL",
+    "signal_confidence": "high or medium or low",
+    "summary": "1-2 sentence executive summary of your trading decision",
+    "decision": "BUY or HOLD or SELL",
+    "entry_exit": {
+      "action": "core trading action description",
+      "exit_target": "target exit price or condition",
+      "stop_loss": "stop loss level",
+      "re_entry": "conditions for re-entry"
+    },
+    "risk_factors": ["risk 1", "risk 2"]
+  }
+  \`\`\`
+  ```
+
+  **Must NOT do**:
+  - Do NOT remove the `FINAL TRANSACTION PROPOSAL` requirement
+  - Do NOT modify the message list structure or `functools.partial` pattern
+  - Do NOT change the `trader_investment_plan` state output
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Acceptance Criteria**:
+  - [ ] `trader.py` contains `json-highlights` fence
+  - [ ] `trader.py` explicitly preserves `FINAL TRANSACTION PROPOSAL` as the last narrative line before the JSON block
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to trader prompt`
+
+- [ ] 10. Modify Aggressive Debator Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/risk_mgmt/aggressive_debator.py`. Replace the existing "without special formatting" wording so it allows one trailing `json-highlights` block, then insert the block before `{language_instruction}` (line 37):
+
+  ```
+  After your complete argument, append a structured highlights block:
+
+  \`\`\`json-highlights
+  {
+    "category": "risk_aggressive",
+    "signal": "BUY or HOLD or SELL",
+    "signal_confidence": "high or medium or low",
+    "summary": "1-2 sentence summary of your aggressive risk stance",
+    "stance_label": "Aggressive",
+    "core_argument": "one sentence core thesis",
+    "risk_assessment": "high or moderate or low",
+    "key_recommendations": ["recommendation 1", "recommendation 2"]
+  }
+  \`\`\`
+  ```
+
+  **Must NOT do**:
+  - Do NOT change the debate state management
+  - Do NOT modify the `Aggressive Analyst:` prefix
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Acceptance Criteria**:
+  - [ ] `aggressive_debator.py` contains `json-highlights` fence
+  - [ ] `aggressive_debator.py` no longer forbids a trailing structured block via "without special formatting" wording
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to aggressive debator prompt`
+
+- [ ] 11. Modify Conservative Debator Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/risk_mgmt/conservative_debator.py`. Same pattern as Task 10 with `category: "risk_conservative"` and `stance_label: "Conservative"`, including replacement of any wording that would forbid a trailing structured block.
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to conservative debator prompt`
+
+- [ ] 12. Modify Neutral Debator Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/risk_mgmt/neutral_debator.py`. Same pattern as Task 10 with `category: "risk_neutral"` and `stance_label: "Neutral"`, including replacement of any wording that would forbid a trailing structured block.
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to neutral debator prompt`
+
+- [ ] 13. Modify Risk Manager (Portfolio Decision) Prompt
+
+  **What to do**:
+  Edit `tradingagents/agents/managers/risk_manager.py`. Insert before `{language_instruction}` (line 46):
+
+  ```
+  After your complete decision, append a structured highlights block:
+
+  \`\`\`json-highlights
+  {
+    "category": "portfolio_decision",
+    "signal": "BUY or HOLD or SELL",
+    "signal_confidence": "high or medium or low",
+    "summary": "1-2 sentence executive summary of your final ruling",
+    "final_decision": "BUY or HOLD or SELL",
+    "decision_basis": "one sentence explaining the primary reason",
+    "strategic_actions": [
+      {"action": "action description", "priority": "immediate or conditional or long-term"}
+    ],
+    "risk_warnings": ["warning 1", "warning 2"]
+  }
+  \`\`\`
+  ```
+
+  **Must NOT do**:
+  - Do NOT change the `final_trade_decision` state output
+  - Do NOT modify the risk debate state management
+
+  **Parallelization**: Can Parallel: YES | Wave 2 | Blocked By: 1
+
+  **Commit**: YES | Message: `feat(prompts): add structured highlights schema to risk manager prompt`
+
+- [ ] 14. Build HighlightCards Component
+
+  **What to do**:
+  Create `web/frontend/components/HighlightCards.tsx` — a React component that renders structured highlight data as visually prominent cards. Must handle **all 9 category types**.
 
   Component design:
 
-  1. **Signal Badge** (always shown if signal exists):
-     - Large pill badge: BUY (green), HOLD (amber/orange), SELL (red)
-     - Confidence level shown as subtitle text
-     - Use CSS classes: `.signal-badge`, `.signal-buy`, `.signal-hold`, `.signal-sell`
+  1. **Signal Badge** (always shown): BUY (green), HOLD (amber), SELL (red)
+  2. **Executive Summary** (always shown)
+  3. **Category-specific cards**:
+     - **Market**: Trend badge, key levels grid, indicators table, volatility
+     - **Fundamentals**: Financial health badge, metrics grid
+     - **Sentiment**: Sentiment badge, score, topic tag pills, social buzz
+     - **News**: Market impact badge, key events list, macro outlook
+     - **Bull/Bear Case**: Stance badge, key arguments list with evidence, counterpoints
+     - **Research Decision**: Decision badge, aligned_with indicator, action items
+     - **Trader**: Decision badge, entry/exit strategy card, risk factors
+     - **Risk Debate** (aggressive/conservative/neutral): Stance label badge, core argument, recommendations
+     - **Portfolio Decision**: Final decision badge, strategic actions timeline, risk warnings
 
-  2. **Executive Summary** (always shown):
-     - Prominent 1-2 sentence summary in a highlighted box
-     - Styled similar to `.glass-panel` aesthetic
-
-  3. **Category-specific cards** (conditional per category):
-
-     **Market highlights**:
-     - Trend direction badge (bullish/bearish/neutral)
-     - Key levels grid: Support levels | Resistance levels
-     - Indicators table: Name | Value | Interpretation
-     - Volatility indicator
-
-     **Fundamentals highlights**:
-     - Financial health badge
-     - Metrics grid: Name | Value | Assessment
-
-     **Sentiment highlights**:
-     - Overall sentiment badge
-     - Sentiment score (if available)
-     - Key topics as tag pills
-     - Social buzz level
-
-     **News highlights**:
-     - Market impact badge
-     - Key events list: Event | Impact
-     - Macro outlook
-
-  4. **Layout**: Cards use CSS Grid, responsive (1 col mobile, 2-3 col desktop). Follow existing `card-surface` and `glass-panel` patterns from globals.css.
-
-  5. **Props interface**:
-  ```typescript
-  interface HighlightCardsProps {
-    highlights: ReportHighlights;
-  }
-  ```
+  4. **Layout**: CSS Grid, responsive (1 col mobile, 2-3 col desktop)
 
   **Must NOT do**:
-  - Do NOT use `dangerouslySetInnerHTML` — all values rendered as plain text
+  - Do NOT use `dangerouslySetInnerHTML`
   - Do NOT add new npm dependencies
-  - Do NOT hardcode colors — use CSS variables from design system (--primary, --accent, --success, etc.)
-  - Do NOT render if highlights is null (parent handles this check)
+  - Do NOT hardcode colors — use CSS variables
 
-  **Recommended Agent Profile**:
-  - Category: `visual-engineering` — Reason: UI component with visual design, responsive layout, color coding
-  - Skills: [`frontend-patterns`] — React component patterns, memoization
-  - Omitted: [`ui-ux-pro-max`] — existing design system is well-defined, just follow it
+  **Parallelization**: Can Parallel: YES | Wave 3 | Blocks: 15 | Blocked By: 1
 
-  **Parallelization**: Can Parallel: NO | Wave 3 | Blocks: 7 | Blocked By: 1
+  **Commit**: YES | Message: `feat(ui): add HighlightCards component for structured report highlights`
 
-  **References**:
-  - Pattern: `web/frontend/components/MarkdownContent.tsx:32-65` — component structure, React.memo pattern, "use client" directive
-  - Style: `web/frontend/app/globals.css:89-106` — `.card-surface` pattern for cards
-  - Style: `web/frontend/app/globals.css:128-133` — `.glass-panel` pattern for summary
-  - Style: `web/frontend/app/globals.css:3-29` — CSS variables (--primary, --accent, --success, --border, etc.)
-  - Style: `web/frontend/components/ReportViewer.tsx:154-156` — badge pill styling pattern
-  - Type: Task 1 — `ReportHighlights` union type, category-specific interfaces
-
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] File `web/frontend/components/HighlightCards.tsx` exists
-  - [ ] Exports `HighlightCards` component
-  - [ ] `cd web/frontend && npx tsc --noEmit` exits 0
-  - [ ] `cd web/frontend && npm run lint` exits 0
-  - [ ] No `dangerouslySetInnerHTML` usage (grep confirms 0 matches)
-
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Component renders signal badge with correct color class
-    Tool: Playwright
-    Steps: Navigate to a report page with valid highlights containing signal "SELL". Inspect signal badge element.
-    Expected: Signal badge contains text "SELL" and has red color styling
-    Evidence: .sisyphus/evidence/task-6-signal-badge.png
-
-  Scenario: Component renders category-specific cards
-    Tool: Playwright
-    Steps: Navigate to market analyst tab for a report with valid highlights. Check for indicators table and key levels.
-    Expected: Indicators table visible with rows. Support/resistance levels displayed.
-    Evidence: .sisyphus/evidence/task-6-category-cards.png
-  ```
-
-  **Commit**: YES | Message: `feat(ui): add HighlightCards component for structured report highlights` | Files: [`web/frontend/components/HighlightCards.tsx`]
-
-- [ ] 7. Integrate Highlights into MarkdownContent + ReportViewer
+- [ ] 15. Integrate Highlights into MarkdownContent + ReportViewer
 
   **What to do**:
 
   **A. Update `MarkdownContent.tsx`**:
-
   1. Import `parseHighlights` from `@/lib/highlights`
-  2. Import `HighlightCards` from `@/components/HighlightCards`
-  3. In the `useMemo` that currently just returns `content`, call `parseHighlights(content)` to get `{ highlights, cleanMarkdown }`
-  4. Render `HighlightCards` above the `ReactMarkdown` article when highlights is non-null
-  5. Pass `cleanMarkdown` to `ReactMarkdown` instead of raw `content` (removes the JSON block from rendered markdown)
+  2. Import `stripHighlightsBlocks` from `@/lib/highlights`
+  3. Import `HighlightCards` from `@/components/HighlightCards`
+  4. Add a prop such as `highlightMode?: "single" | "off"` to distinguish individual reports from `complete_report.md`
+  5. In `useMemo`, call `parseHighlights(content)` only when `highlightMode === "single"`
+  6. When `highlightMode === "off"`, call `stripHighlightsBlocks(content)` and render markdown only
+  7. Render `HighlightCards` above `ReactMarkdown` only when highlights are non-null
+  8. Pass cleaned markdown to `ReactMarkdown`
 
-  Updated component structure:
-  ```tsx
-  export const MarkdownContent = React.memo(
-    function MarkdownContent({ content, isLoading = false }: MarkdownContentProps) {
-      const { highlights, cleanMarkdown } = useMemo(() => {
-        return parseHighlights(content);
-      }, [content]);
-
-      // ... existing loading logic unchanged ...
-
-      return (
-        <div className="relative">
-          {highlights && (
-            <div className="mb-6">
-              <HighlightCards highlights={highlights} />
-            </div>
-          )}
-          <article className="markdown-content max-w-none" aria-busy={isLoading}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {cleanMarkdown}
-            </ReactMarkdown>
-          </article>
-          {/* ... existing overlay logic unchanged ... */}
-        </div>
-      );
-    }
-  );
-  ```
-
-  **B. Update `ReportViewer.tsx`** (minimal):
-  - No structural changes needed. The `MarkdownContent` component already receives the full markdown string.
-  - The category context is already implicitly available because each tab loads a specific file (e.g., `1_analysts/market.md`).
-  - If in the future we need category-aware rendering, we can pass `category` prop, but for now the parser detects category from the JSON block's `category` field.
+  **B. Update `ReportViewer.tsx`**:
+  1. Pass `highlightMode="off"` for the `complete_report.md` tab
+  2. Pass `highlightMode="single"` for individual subreports
+  3. Keep all existing loading, request de-duping, tab navigation, and skeleton behavior unchanged
 
   **Must NOT do**:
-  - Do NOT change the existing loading skeleton behavior
-  - Do NOT change the existing overlay behavior
-  - Do NOT modify the `hasContent` check logic
-  - Do NOT break the memoization — keep `useMemo` dependency on `content`
+  - Do NOT change loading skeleton, overlay, or memoization behavior
   - Do NOT change ReportViewer's tab navigation or async loading
 
-  **Recommended Agent Profile**:
-  - Category: `visual-engineering` — Reason: Integrating new UI component into existing render flow
-  - Skills: [`frontend-patterns`] — React integration, memoization
-  - Omitted: [`software-architecture`] — straightforward integration, not architecture
+  **Parallelization**: Can Parallel: NO | Wave 3 | Blocks: none | Blocked By: 1, 14, 16
 
-  **Parallelization**: Can Parallel: NO | Wave 3 | Blocks: 8 | Blocked By: 1, 6
+  **Commit**: YES | Message: `feat(ui): integrate highlight cards into MarkdownContent renderer`
 
-  **References**:
-  - Pattern: `web/frontend/components/MarkdownContent.tsx:32-65` — existing component to modify
-  - Pattern: `web/frontend/components/MarkdownContent.tsx:34-36` — useMemo processing point (replace)
-  - Pattern: `web/frontend/components/MarkdownContent.tsx:47-64` — render structure (add highlights above article)
-  - Type: `web/frontend/lib/highlights.ts` — `parseHighlights` function signature
-  - Component: `web/frontend/components/HighlightCards.tsx` — component to import
-  - Guard: `web/frontend/components/ReportViewer.tsx:82-96` — requestIdRef race guard (do not touch)
-
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] `MarkdownContent.tsx` imports `parseHighlights` and `HighlightCards`
-  - [ ] `MarkdownContent.tsx` uses `parseHighlights` in `useMemo`
-  - [ ] `MarkdownContent.tsx` renders `HighlightCards` conditionally when `highlights !== null`
-  - [ ] `cd web/frontend && npx tsc --noEmit` exits 0
-  - [ ] `cd web/frontend && npm run build` exits 0
-
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Report with highlights shows cards above markdown
-    Tool: Playwright
-    Steps: Start frontend dev server. Navigate to a report with valid highlights. Scroll to top of content panel.
-    Expected: Highlight cards visible above the markdown narrative. Both sections rendered.
-    Evidence: .sisyphus/evidence/task-7-integration-with-highlights.png
-
-  Scenario: Old report without highlights renders markdown only
-    Tool: Playwright
-    Steps: Navigate to an existing old report (e.g., QQQ_20260306_174555). View market analyst tab.
-    Expected: No highlight cards shown. Markdown renders exactly as before, unchanged.
-    Evidence: .sisyphus/evidence/task-7-integration-without-highlights.png
-
-  Scenario: Report with malformed JSON block renders markdown only
-    Tool: Bash
-    Steps: Create a test .md file with broken JSON in json-highlights block, serve via backend, view in frontend.
-    Expected: No highlight cards. Markdown renders with the malformed block visible as code.
-    Evidence: .sisyphus/evidence/task-7-integration-malformed.png
-  ```
-
-  **Commit**: YES | Message: `feat(ui): integrate highlight cards into MarkdownContent renderer` | Files: [`web/frontend/components/MarkdownContent.tsx`]
-
-- [ ] 8. Add CSS Styles for Highlight Cards
+- [ ] 16. Add CSS Styles for Highlight Cards
 
   **What to do**:
-  Add styles to `web/frontend/app/globals.css` for the highlight cards. Place them after the existing `.markdown-content` styles (after line 347).
+  Add styles to `web/frontend/app/globals.css` for all highlight card variants. Place after existing `.markdown-content` styles.
 
-  Required styles:
+  Required style classes:
+  - `.signal-badge`, `.signal-buy`, `.signal-hold`, `.signal-sell`
+  - `.highlights-container`, `.highlight-summary`, `.highlight-card`
+  - `.highlight-badge`, `.highlight-tag`, `.highlight-metric`, `.highlight-table`
+  - `.stance-bullish`, `.stance-bearish` (for researcher cards)
+  - `.priority-immediate`, `.priority-conditional`, `.priority-longterm` (for portfolio actions)
 
-  1. **Signal Badge**:
-  ```css
-  .signal-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.95rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .signal-buy {
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-    color: #fff;
-    border: 1px solid rgba(22, 163, 74, 0.6);
-    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.22);
-  }
-
-  .signal-hold {
-    background: linear-gradient(135deg, #ec5b13 0%, #d74f0d 100%);
-    color: #fff;
-    border: 1px solid rgba(236, 91, 19, 0.6);
-    box-shadow: 0 6px 16px rgba(236, 91, 19, 0.22);
-  }
-
-  .signal-sell {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    color: #fff;
-    border: 1px solid rgba(220, 38, 38, 0.6);
-    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.22);
-  }
-  ```
-
-  2. **Highlight container and cards**:
-  ```css
-  .highlights-container { ... }    /* grid layout, gap, responsive cols */
-  .highlight-summary { ... }       /* glass-panel style summary box */
-  .highlight-card { ... }          /* individual metric/indicator card */
-  .highlight-badge { ... }         /* small status badges (bullish/bearish/etc) */
-  .highlight-tag { ... }           /* tag pills for topics */
-  .highlight-metric { ... }        /* metric name + value pair */
-  .highlight-table { ... }         /* compact table for indicators */
-  ```
-
-  3. **Design constraints**:
-     - Use existing CSS variables: `--primary`, `--accent`, `--success`, `--border`, `--surface-quiet`, etc.
-     - Follow `card-surface` pattern for cards (border, border-radius, background, box-shadow, hover)
-     - Follow `glass-panel` pattern for summary box
-     - Responsive: 1 column on mobile, 2-3 columns on desktop
-     - Match existing `.markdown-content` font sizes and spacing
-     - Include `@media (prefers-reduced-motion: reduce)` for any transitions
+  **Design constraints**:
+  - Use existing CSS variables: `--primary`, `--accent`, `--success`, `--border`, etc.
+  - Follow `card-surface` and `glass-panel` patterns
+  - Responsive: 1 column mobile, 2-3 columns desktop
+  - Include `@media (prefers-reduced-motion: reduce)`
 
   **Must NOT do**:
-  - Do NOT modify existing CSS rules — only add new ones
+  - Do NOT modify existing CSS rules
   - Do NOT use !important
-  - Do NOT hardcode colors — use CSS variables
+  - Do NOT hardcode colors
 
-  **Recommended Agent Profile**:
-  - Category: `visual-engineering` — Reason: Pure CSS styling work
-  - Skills: [`frontend-patterns`] — responsive design patterns
-  - Omitted: [`ui-ux-pro-max`] — design system is defined, just extend it
+  **Parallelization**: Can Parallel: YES | Wave 3 | Blocks: 15 | Blocked By: 1
 
-  **Parallelization**: Can Parallel: NO | Wave 3 | Blocks: none | Blocked By: 7
-
-  **References**:
-  - Pattern: `web/frontend/app/globals.css:89-106` — `.card-surface` — card styling pattern to follow
-  - Pattern: `web/frontend/app/globals.css:128-133` — `.glass-panel` — summary box pattern
-  - Pattern: `web/frontend/app/globals.css:3-29` — CSS variables to use
-  - Pattern: `web/frontend/app/globals.css:304-311` — `.markdown-content table` — table styling to extend
-  - Pattern: `web/frontend/app/globals.css:335-347` — responsive breakpoint pattern
-  - Pattern: `web/frontend/app/globals.css:349-357` — reduced motion query
-
-  **Acceptance Criteria** (agent-executable only):
-  - [ ] `globals.css` contains `.signal-badge`, `.signal-buy`, `.signal-hold`, `.signal-sell` classes
-  - [ ] `globals.css` contains `.highlights-container` class
-  - [ ] `cd web/frontend && npm run build` exits 0
-  - [ ] No `!important` usage in added styles
-
-  **QA Scenarios** (MANDATORY):
-  ```
-  Scenario: Signal badge renders with correct gradient colors
-    Tool: Playwright
-    Steps: Navigate to a report with SELL signal. Screenshot the signal badge.
-    Expected: Red gradient badge visible with "SELL" text
-    Evidence: .sisyphus/evidence/task-8-signal-sell.png
-
-  Scenario: Cards are responsive on mobile viewport
-    Tool: Playwright
-    Steps: Set viewport to 375x812 (iPhone). Navigate to report with highlights.
-    Expected: Highlight cards stack in single column. No horizontal overflow.
-    Evidence: .sisyphus/evidence/task-8-responsive-mobile.png
-  ```
-
-  **Commit**: YES | Message: `feat(ui): add CSS styles for highlight cards and signal badges` | Files: [`web/frontend/app/globals.css`]
+  **Commit**: YES | Message: `feat(ui): add CSS styles for highlight cards and signal badges`
 
 ## Final Verification Wave (4 parallel agents, ALL must APPROVE)
 - [ ] F1. Plan Compliance Audit — oracle
-  Verify all tasks executed match plan. No scope creep. No files modified outside plan scope.
+  Verify all tasks executed match plan. No scope creep. No files modified outside plan scope. Confirm Task 0 remained validation-only unless a real alias bug was reproduced.
 
 - [ ] F2. Code Quality Review — unspecified-high
-  Review all modified/created files for: TypeScript types correctness, no `any` types, proper memoization, no security issues, consistent code style with existing codebase.
+  Review all modified/created files for: TypeScript types correctness, no `any` types, proper memoization, no security issues, consistent code style.
 
-- [ ] F3. Real Manual QA — unspecified-high (+ playwright)
-  Start both backend and frontend servers. Navigate through ALL existing reports — verify they render unchanged. If a newly generated report exists with highlights, verify cards display correctly. Test mobile viewport. Take evidence screenshots.
+- [ ] F3. Runtime + UI QA — unspecified-high (+ browser tooling if already available)
+  Start the existing app stack if the environment supports it. Navigate through ALL existing reports and verify they render unchanged. Generate at least one fresh report through the real pipeline and verify:
+  - individual subreports render highlight cards correctly
+  - malformed/no-highlight subreports fall back cleanly
+  - `complete_report.md` renders with no cards and no raw `json-highlights` blocks
+  - mobile viewport remains usable
+  Use Playwright only if it is already configured; do not add browser test infra as part of this feature.
 
 - [ ] F4. Scope Fidelity Check — deep
-  Verify: no backend files modified, no AgentState changes, no new npm dependencies added, no researcher/trader/risk/portfolio prompts touched. Only the 4 analyst prompts + frontend files changed.
+  Verify: no backend files modified, no AgentState changes, no new npm dependencies, no `complete_report.md` generation logic touched. Only the 12 prompt files + frontend files changed.
 
 ## Commit Strategy
-Each task gets its own commit with conventional commit message. Final squash optional.
+Task 0 is validation-only and does not get a commit. Every code-changing task gets its own conventional-commit message. Final squash optional.
 
 1. `feat(highlights): add highlight schema types and parser utility`
 2. `feat(prompts): add structured highlights schema to market analyst prompt`
 3. `feat(prompts): add structured highlights schema to fundamentals analyst prompt`
 4. `feat(prompts): add structured highlights schema to social media analyst prompt`
 5. `feat(prompts): add structured highlights schema to news analyst prompt`
-6. `feat(ui): add HighlightCards component for structured report highlights`
-7. `feat(ui): integrate highlight cards into MarkdownContent renderer`
-8. `feat(ui): add CSS styles for highlight cards and signal badges`
+6. `feat(prompts): add structured highlights schema to bull researcher prompt`
+7. `feat(prompts): add structured highlights schema to bear researcher prompt`
+8. `feat(prompts): add structured highlights schema to research manager prompt`
+9. `feat(prompts): add structured highlights schema to trader prompt`
+10. `feat(prompts): add structured highlights schema to aggressive debator prompt`
+11. `feat(prompts): add structured highlights schema to conservative debator prompt`
+12. `feat(prompts): add structured highlights schema to neutral debator prompt`
+13. `feat(prompts): add structured highlights schema to risk manager prompt`
+14. `feat(ui): add HighlightCards component for structured report highlights`
+15. `feat(ui): integrate highlight cards into MarkdownContent renderer`
+16. `feat(ui): add CSS styles for highlight cards and signal badges`
 
 ## Success Criteria
-1. New analyst reports contain parseable `json-highlights` blocks
-2. Frontend renders highlight cards with signal badge, summary, and category-specific metrics above markdown for new reports
-3. Old reports render exactly as before — no visual regression
-4. `npm run build` succeeds with zero errors
-5. `npm run lint` passes
-6. All Python prompt files import successfully
-7. No new npm dependencies added
-8. No backend API changes
+1. All 12 prompt-produced subreports contain parseable `json-highlights` blocks when newly generated
+2. Frontend renders highlight cards with signal badge, summary, and category-specific metrics above markdown for every individual subreport type
+3. `complete_report.md` stays readable: no highlight cards, no raw `json-highlights` blocks
+4. Old reports render exactly as before when no highlight block is present
+5. `npm run build` succeeds with zero errors
+6. `npm run lint` passes
+7. All 12 Python prompt files import successfully
+8. No new npm dependencies added
+9. No backend API changes
+10. `complete_report.md` generation logic untouched
+11. At least one fresh end-to-end generated report is verified, or the work is explicitly marked runtime-unverified
