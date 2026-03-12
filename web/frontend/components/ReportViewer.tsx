@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getStructure, getContent, ReportStructure } from "@/lib/api";
 import { MarkdownContent } from "./MarkdownContent";
 
@@ -38,9 +38,11 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const [content, setContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const loadStructure = async () => {
+      requestIdRef.current++;
       try {
         setIsLoading(true);
         setError(null);
@@ -72,45 +74,54 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         const categoryKey = selectedTab;
         const categoryInfo = CATEGORY_MAP[categoryKey];
         if (!categoryInfo || !selectedFile) {
-          setContent("");
           return;
         }
         path = `${categoryInfo.dir}/${selectedFile}.md`;
       }
 
+      const thisRequest = ++requestIdRef.current;
+
       try {
         setIsLoading(true);
         setError(null);
         const data = await getContent(reportId, path);
+        if (thisRequest !== requestIdRef.current) return;
         setContent(data);
       } catch (err) {
+        if (thisRequest !== requestIdRef.current) return;
         setError(err instanceof Error ? err.message : "Failed to load content");
-        setContent("");
       } finally {
-        setIsLoading(false);
+        if (thisRequest === requestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadContent();
   }, [reportId, selectedTab, selectedFile, structure]);
 
-  const handleTabChange = useCallback(
-    (tabKey: string) => {
-      setSelectedTab(tabKey);
-      if (tabKey !== "complete" && structure) {
-        const categoryKey = tabKey;
-        const files = structure.categories[categoryKey] || [];
-        if (files.length > 0) {
-          setSelectedFile(files[0]);
+   const handleTabChange = useCallback(
+      (tabKey: string) => {
+        setSelectedTab(tabKey);
+        // Force skeleton load when switching between complete and category modes (cross-mode policy)
+        const crossMode = (selectedTab === "complete") !== (tabKey === "complete");
+        if (crossMode) {
+          setContent("");
+        }
+        if (tabKey !== "complete" && structure) {
+          const categoryKey = tabKey;
+          const files = structure.categories[categoryKey] || [];
+          if (files.length > 0) {
+            setSelectedFile(files[0]);
+          } else {
+            setSelectedFile(null);
+          }
         } else {
           setSelectedFile(null);
         }
-      } else {
-        setSelectedFile(null);
-      }
-    },
-    [structure]
-  );
+      },
+      [selectedTab, structure]
+    );
 
   if (!structure) {
     return (
@@ -200,11 +211,14 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
             >
               {categoryFiles.map((file) => (
                 <button
-                  id={`report-file-${file}`}
-                  type="button"
-                  key={file}
-                  onClick={() => setSelectedFile(file)}
-                  className={`interactive-button focus-ring rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all ${
+                   id={`report-file-${file}`}
+                   type="button"
+                   key={file}
+                   onClick={() => {
+                     setContent("");
+                     setSelectedFile(file);
+                   }}
+                   className={`interactive-button focus-ring rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all ${
                     selectedFile === file
                       ? "border border-[color:rgba(236,91,19,0.42)] bg-[var(--primary-soft)] text-[var(--primary-strong)] shadow-[0_6px_16px_rgba(236,91,19,0.14)]"
                       : "border border-[var(--border)] bg-white/86 text-slate-500 hover:border-[color:rgba(21,55,96,0.28)] hover:text-[var(--accent)]"
@@ -223,7 +237,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
 
       <section
         id="report-content-panel"
-        className="card-surface fade-in flex-1 min-h-0 overflow-hidden rounded-2xl"
+        className="card-surface flex-1 min-h-0 overflow-hidden rounded-2xl"
         role="tabpanel"
         aria-live="polite"
       >

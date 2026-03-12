@@ -47,7 +47,7 @@ export const MarkdownContent = React.memo(
     return (
       <div className="relative">
         <article
-          className="markdown-content max-w-none fade-in"
+          className="markdown-content max-w-none"
           aria-busy={isLoading}
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -56,7 +56,7 @@ export const MarkdownContent = React.memo(
         </article>
 
         {showOverlay && (
-          <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/60 p-4 backdrop-blur-[1px] md:p-6">
+          <div className="pointer-events-none absolute inset-0 rounded-xl bg-white p-4 md:p-6">
             <LoadingSkeleton label="Refreshing report content" />
           </div>
         )}
