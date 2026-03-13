@@ -3,10 +3,13 @@
 import React, { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { HighlightCards } from "@/components/HighlightCards";
+import { parseHighlights, stripHighlightsBlocks } from "@/lib/highlights";
 
 interface MarkdownContentProps {
   content: string;
   isLoading?: boolean;
+  highlightMode?: "single" | "off";
 }
 
 function LoadingSkeleton({ label }: { label: string }) {
@@ -30,10 +33,25 @@ function LoadingSkeleton({ label }: { label: string }) {
  * Memoized to avoid re-renders from parent state changes.
  */
 export const MarkdownContent = React.memo(
-  function MarkdownContent({ content, isLoading = false }: MarkdownContentProps) {
-    const processedContent = useMemo(() => {
-      return content;
-    }, [content]);
+  function MarkdownContent({
+    content,
+    isLoading = false,
+    highlightMode = "single",
+  }: MarkdownContentProps) {
+    const { processedContent, highlights } = useMemo(() => {
+      if (highlightMode === "single") {
+        const parsed = parseHighlights(content);
+        return {
+          processedContent: parsed.cleanMarkdown,
+          highlights: parsed.highlights,
+        };
+      }
+
+      return {
+        processedContent: stripHighlightsBlocks(content),
+        highlights: null,
+      };
+    }, [content, highlightMode]);
 
     const hasContent = processedContent.trim().length > 0;
     const showOverlay = isLoading && hasContent;
@@ -50,6 +68,7 @@ export const MarkdownContent = React.memo(
           className="markdown-content max-w-none"
           aria-busy={isLoading}
         >
+          {highlights && <HighlightCards highlights={highlights} />}
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {processedContent}
           </ReactMarkdown>

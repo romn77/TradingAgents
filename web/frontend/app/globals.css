@@ -346,6 +346,183 @@ input {
   }
 }
 
+.highlights-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 0 0 1.15rem;
+}
+
+.highlights-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+.highlight-summary {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-soft) 56%, var(--surface) 44%) 0%,
+      color-mix(in srgb, var(--surface-strong) 84%, var(--accent-soft) 16%) 100%
+    ),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
+  padding: 0.95rem 1rem;
+  color: var(--text);
+}
+
+.highlight-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-strong) 88%, var(--surface) 12%) 0%,
+      color-mix(in srgb, var(--surface) 90%, var(--surface-quiet) 10%) 100%
+    ),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
+  padding: 0.9rem 1rem;
+  transition:
+    transform 170ms ease,
+    box-shadow 170ms ease,
+    border-color 170ms ease;
+}
+
+.highlight-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  box-shadow: var(--shadow-hover);
+}
+
+.signal-badge,
+.highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0.22rem 0.58rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.signal-buy {
+  border-color: color-mix(in srgb, var(--success) 48%, var(--border));
+  background: color-mix(in srgb, var(--success) 16%, var(--surface));
+  color: color-mix(in srgb, var(--success) 88%, var(--text));
+}
+
+.signal-hold {
+  border-color: color-mix(in srgb, var(--primary) 44%, var(--border));
+  background: color-mix(in srgb, var(--primary-soft) 78%, var(--surface) 22%);
+  color: var(--primary-strong);
+}
+
+.signal-sell {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface) 28%);
+  color: var(--accent);
+}
+
+.highlight-tag,
+.highlight-metric {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-quiet) 84%, var(--surface) 16%);
+  color: color-mix(in srgb, var(--text) 84%, var(--muted) 16%);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.highlight-tag {
+  padding: 0.24rem 0.55rem;
+}
+
+.highlight-metric {
+  padding: 0.24rem 0.52rem;
+  gap: 0.28rem;
+}
+
+.highlight-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.72rem;
+  font-size: 0.82rem;
+}
+
+.highlight-table thead {
+  background: color-mix(in srgb, var(--surface-quiet) 90%, var(--surface) 10%);
+}
+
+.highlight-table th,
+.highlight-table td {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 90%, var(--surface) 10%);
+  padding: 0.48rem 0.56rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.highlight-table tbody tr:hover {
+  background: color-mix(in srgb, var(--primary-soft) 48%, var(--surface) 52%);
+}
+
+.stance-bullish {
+  border-color: color-mix(in srgb, var(--success) 48%, var(--border));
+  background: color-mix(in srgb, var(--success) 14%, var(--surface));
+  color: color-mix(in srgb, var(--success) 90%, var(--text));
+}
+
+.stance-bearish {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface) 28%);
+  color: var(--accent);
+}
+
+.priority-immediate {
+  border-color: color-mix(in srgb, var(--primary) 46%, var(--border));
+  background: color-mix(in srgb, var(--primary-soft) 76%, var(--surface) 24%);
+  color: var(--primary-strong);
+}
+
+.priority-conditional {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 66%, var(--surface) 34%);
+  color: var(--accent);
+}
+
+.priority-longterm {
+  border-color: color-mix(in srgb, var(--success) 42%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: color-mix(in srgb, var(--success) 88%, var(--text));
+}
+
+@media (min-width: 768px) {
+  .highlights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .highlights-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

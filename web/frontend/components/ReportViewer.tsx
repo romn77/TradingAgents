@@ -243,13 +243,13 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       >
         <div className="h-full overflow-y-auto p-5 md:p-8">
           {selectedTab === "complete" ? (
-            <MarkdownContent content={content} isLoading={isLoading} />
+            <MarkdownContent content={content} isLoading={isLoading} highlightMode="off" />
           ) : categoryFiles.length === 0 ? (
             <div className="py-8 text-center text-sm text-slate-500">
               No data available for this category
             </div>
           ) : (
-            <MarkdownContent content={content} isLoading={isLoading} />
+            <MarkdownContent content={content} isLoading={isLoading} highlightMode="single" />
           )}
         </div>
       </section>
