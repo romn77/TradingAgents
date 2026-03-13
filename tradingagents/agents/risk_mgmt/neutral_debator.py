@@ -39,6 +39,23 @@ This is the opening cycle of the risk debate. Lead with your own neutral thesis 
             task_instruction = """Your task is to present a standalone neutral risk thesis for the trader's decision, balancing upside participation against downside protection and proposing a moderate execution path."""
             engagement_instruction = """Focus on building your own balanced case in a conversational voice. Explain how you would combine participation and protection, and avoid meta commentary about whether counterpart arguments are available."""
 
+        if debate_mode == REBUTTAL_MODE:
+            counterpart_context = (
+                f"Here is the last response from the aggressive analyst: {current_aggressive_response or 'None yet.'} "
+                f"Here is the last response from the conservative analyst: {current_conservative_response or 'None yet.'}."
+            )
+        else:
+            parts = []
+            if current_aggressive_response:
+                parts.append(
+                    f"Here is the last response from the aggressive analyst: {current_aggressive_response}"
+                )
+            if current_conservative_response:
+                parts.append(
+                    f"Here is the last response from the conservative analyst: {current_conservative_response}"
+                )
+            counterpart_context = " ".join(parts)
+
         prompt = f"""As the Neutral Risk Analyst, your role is to provide a balanced perspective, weighing both the potential benefits and risks of the trader's decision or plan. You prioritize a well-rounded approach, evaluating the upsides and downsides while factoring in broader market trends, potential economic shifts, and diversification strategies.
 
 {mode_instruction}
@@ -54,15 +71,7 @@ Market Research Report: {market_research_report}
 Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
-Here is the current conversation history: {
-            history
-        } Here is the last response from the aggressive analyst: {
-            current_aggressive_response
-            or "No prior aggressive argument is available in this opening cycle."
-        } Here is the last response from the conservative analyst: {
-            current_conservative_response
-            or "No prior conservative argument is available in this opening cycle."
-        }.
+Here is the current conversation history: {history} {counterpart_context}
 
 {engagement_instruction}
 Output conversationally, then append a structured highlights block as shown below.

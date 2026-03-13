@@ -37,6 +37,23 @@ This is the opening cycle of the risk debate. Lead with your own conservative th
             task_instruction = """Your task is to present a standalone conservative risk thesis for the trader's decision, identifying loss scenarios, drawdown risks, and the protective adjustments required to preserve capital."""
             engagement_instruction = """Focus on building your own low-risk case in a conversational voice. Recommend hedges, position limits, or timing adjustments that reduce downside, and avoid meta commentary about whether counterpart arguments are available."""
 
+        if debate_mode == REBUTTAL_MODE:
+            counterpart_context = (
+                f"Here is the last response from the aggressive analyst: {current_aggressive_response or 'None yet.'}\n"
+                f"Here is the last response from the neutral analyst: {current_neutral_response or 'None yet.'}"
+            )
+        else:
+            parts = []
+            if current_aggressive_response:
+                parts.append(
+                    f"Here is the last response from the aggressive analyst: {current_aggressive_response}"
+                )
+            if current_neutral_response:
+                parts.append(
+                    f"Here is the last response from the neutral analyst: {current_neutral_response}"
+                )
+            counterpart_context = "\n".join(parts)
+
         prompt = f"""As the Conservative Risk Analyst, your primary objective is to protect assets, minimize volatility, and ensure steady, reliable growth. You prioritize stability, security, and risk mitigation, carefully assessing potential losses, economic downturns, and market volatility. When evaluating the trader's decision or plan, critically examine high-risk elements, pointing out where the decision may expose the firm to undue risk and where more cautious alternatives could secure long-term gains.
 
 {mode_instruction}
@@ -53,8 +70,7 @@ Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
 Here is the current conversation history: {history}
-Here is the last response from the aggressive analyst: {current_aggressive_response or "No prior aggressive argument is available in this opening cycle."}
-Here is the last response from the neutral analyst: {current_neutral_response or "No prior neutral argument is available in this opening cycle."}
+{counterpart_context}
 
 {engagement_instruction}
 After your complete argument, append a structured highlights block:

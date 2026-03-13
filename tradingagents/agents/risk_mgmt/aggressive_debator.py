@@ -37,6 +37,23 @@ This is the opening cycle of the risk debate. Lead with your own aggressive thes
             task_instruction = """Your task is to present a standalone aggressive risk thesis for the trader's decision, showing where decisive positioning, asymmetry, or optionality could justify leaning into risk."""
             engagement_instruction = """Focus on building your own high-conviction case in a conversational voice. Recommend the bold actions, sizing, or risk budget adjustments you believe best capture upside, and avoid meta commentary about whether counterpart arguments are available."""
 
+        if debate_mode == REBUTTAL_MODE:
+            counterpart_context = (
+                f"Here are the last arguments from the conservative analyst: {current_conservative_response or 'None yet.'}\n"
+                f"Here are the last arguments from the neutral analyst: {current_neutral_response or 'None yet.'}"
+            )
+        else:
+            parts = []
+            if current_conservative_response:
+                parts.append(
+                    f"Here are the last arguments from the conservative analyst: {current_conservative_response}"
+                )
+            if current_neutral_response:
+                parts.append(
+                    f"Here are the last arguments from the neutral analyst: {current_neutral_response}"
+                )
+            counterpart_context = "\n".join(parts)
+
         prompt = f"""As the Aggressive Risk Analyst, your role is to actively champion high-reward, high-risk opportunities, emphasizing bold strategies and competitive advantages. When evaluating the trader's decision or plan, focus intently on the potential upside, growth potential, and innovative benefits—even when these come with elevated risk. Use the provided market data and sentiment analysis to strengthen your arguments and challenge the opposing views.
 
 {mode_instruction}
@@ -53,8 +70,7 @@ Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
 Here is the current conversation history: {history}
-Here are the last arguments from the conservative analyst: {current_conservative_response or "No prior conservative argument is available in this opening cycle."}
-Here are the last arguments from the neutral analyst: {current_neutral_response or "No prior neutral argument is available in this opening cycle."}
+{counterpart_context}
 
 {engagement_instruction}
 After your complete argument, append a structured highlights block:

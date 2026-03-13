@@ -89,6 +89,42 @@ class RiskDebatePromptModeTests(unittest.TestCase):
                 prompt = llm.prompts[-1]
                 self.assertIn("Debate mode: rebuttal", prompt)
 
+    def test_thesis_mode_omits_missing_counterpart_placeholder(self):
+        FORBIDDEN_FRAGMENTS = [
+            "No prior conservative argument is available in this opening cycle.",
+            "No prior aggressive argument is available in this opening cycle.",
+            "No prior neutral argument is available in this opening cycle.",
+        ]
+
+        cases = [
+            ("aggressive", create_aggressive_debator),
+            ("conservative", create_conservative_debator),
+            ("neutral", create_neutral_debator),
+        ]
+
+        for name, factory in cases:
+            with self.subTest(node=name):
+                llm = _FakeLLM()
+                node = factory(llm)
+                state = _base_state()
+                state["risk_debate_state"]["count"] = 0
+                state["risk_debate_state"]["current_aggressive_response"] = ""
+                state["risk_debate_state"]["current_conservative_response"] = ""
+                state["risk_debate_state"]["current_neutral_response"] = ""
+
+                node(state)
+
+                prompt = llm.prompts[-1]
+                for fragment in FORBIDDEN_FRAGMENTS:
+                    self.assertNotIn(
+                        fragment,
+                        prompt,
+                        msg=(
+                            f"[{name}] thesis-mode prompt must not contain "
+                            f"missing-counterpart placeholder: {fragment!r}"
+                        ),
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()
