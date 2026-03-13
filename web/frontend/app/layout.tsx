@@ -1,24 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
 import "./globals.css";
-
-const bodyFont = Manrope({
-  variable: "--font-body",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const headingFont = Sora({
-  variable: "--font-heading",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const monoFont = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "TradingAgents Report Viewer",
@@ -32,11 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${bodyFont.variable} ${headingFont.variable} ${monoFont.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

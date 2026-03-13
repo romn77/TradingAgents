@@ -64,11 +64,11 @@ export const MarkdownContent = React.memo(
 
     return (
       <div className="relative">
+        {highlights && <HighlightCards highlights={highlights} />}
         <article
           className="markdown-content max-w-none"
           aria-busy={isLoading}
         >
-          {highlights && <HighlightCards highlights={highlights} />}
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {processedContent}
           </ReactMarkdown>
