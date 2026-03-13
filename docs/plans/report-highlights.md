@@ -141,7 +141,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
 ## TODOs
 
-- [ ] 0. Record Frontend Baseline + Alias Repro Status
+- [x] 0. Record Frontend Baseline + Alias Repro Status
 
   **What to do**:
   Record the current frontend baseline before feature work:
@@ -165,7 +165,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: NO
 
-- [ ] 1. Define Highlight Schema Types + Parser Utility
+- [x] 1. Define Highlight Schema Types + Parser Utility
 
   **What to do**:
   Create `web/frontend/lib/highlights.ts` containing:
@@ -337,7 +337,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 - Prompts that currently require `FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL**` must preserve that line as the final narrative line, then append the JSON block after it.
 - Do not add more than one `json-highlights` block per report.
 
-- [ ] 2. Modify Market Analyst Prompt
+- [x] 2. Modify Market Analyst Prompt
 
   **What to do**:
   Edit `tradingagents/agents/analysts/market_analyst.py` line 49 to append instructions for the structured JSON highlights block after the existing "Markdown table" instruction.
@@ -384,7 +384,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to market analyst prompt` | Files: [`tradingagents/agents/analysts/market_analyst.py`]
 
-- [ ] 3. Modify Fundamentals Analyst Prompt
+- [x] 3. Modify Fundamentals Analyst Prompt
 
   **What to do**:
   Edit `tradingagents/agents/analysts/fundamentals_analyst.py` line 28.
@@ -416,7 +416,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to fundamentals analyst prompt`
 
-- [ ] 4. Modify Social Media Analyst Prompt
+- [x] 4. Modify Social Media Analyst Prompt
 
   **What to do**:
   Edit `tradingagents/agents/analysts/social_media_analyst.py` line 19.
@@ -444,7 +444,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to social media analyst prompt`
 
-- [ ] 5. Modify News Analyst Prompt
+- [x] 5. Modify News Analyst Prompt
 
   **What to do**:
   Edit `tradingagents/agents/analysts/news_analyst.py` line 23.
@@ -469,7 +469,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to news analyst prompt`
 
-- [ ] 6. Modify Bull Researcher Prompt
+- [x] 6. Modify Bull Researcher Prompt
 
   **What to do**:
   Edit `tradingagents/agents/researchers/bull_researcher.py`. In the f-string prompt (line 25-44), insert the following block before `{language_instruction}` (line 43):
@@ -508,7 +508,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to bull researcher prompt`
 
-- [ ] 7. Modify Bear Researcher Prompt
+- [x] 7. Modify Bear Researcher Prompt
 
   **What to do**:
   Edit `tradingagents/agents/researchers/bear_researcher.py`. Same pattern as Task 6, but with `category: "bear_case"` and `stance: "bearish"`.
@@ -537,7 +537,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to bear researcher prompt`
 
-- [ ] 8. Modify Research Manager Prompt
+- [x] 8. Modify Research Manager Prompt
 
   **What to do**:
   Edit `tradingagents/agents/managers/research_manager.py`. Replace the existing "without special formatting" wording so it explicitly allows one trailing `json-highlights` block, then insert the block before `{language_instruction}` in the prompt (line 40):
@@ -571,7 +571,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to research manager prompt`
 
-- [ ] 9. Modify Trader Prompt
+- [x] 9. Modify Trader Prompt
 
   **What to do**:
   Edit `tradingagents/agents/trader/trader.py`. Revise the system message so that:
@@ -615,7 +615,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to trader prompt`
 
-- [ ] 10. Modify Aggressive Debator Prompt
+- [x] 10. Modify Aggressive Debator Prompt
 
   **What to do**:
   Edit `tradingagents/agents/risk_mgmt/aggressive_debator.py`. Replace the existing "without special formatting" wording so it allows one trailing `json-highlights` block, then insert the block before `{language_instruction}` (line 37):
@@ -649,7 +649,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to aggressive debator prompt`
 
-- [ ] 11. Modify Conservative Debator Prompt
+- [x] 11. Modify Conservative Debator Prompt
 
   **What to do**:
   Edit `tradingagents/agents/risk_mgmt/conservative_debator.py`. Same pattern as Task 10 with `category: "risk_conservative"` and `stance_label: "Conservative"`, including replacement of any wording that would forbid a trailing structured block.
@@ -658,7 +658,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to conservative debator prompt`
 
-- [ ] 12. Modify Neutral Debator Prompt
+- [x] 12. Modify Neutral Debator Prompt
 
   **What to do**:
   Edit `tradingagents/agents/risk_mgmt/neutral_debator.py`. Same pattern as Task 10 with `category: "risk_neutral"` and `stance_label: "Neutral"`, including replacement of any wording that would forbid a trailing structured block.
@@ -667,7 +667,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to neutral debator prompt`
 
-- [ ] 13. Modify Risk Manager (Portfolio Decision) Prompt
+- [x] 13. Modify Risk Manager (Portfolio Decision) Prompt
 
   **What to do**:
   Edit `tradingagents/agents/managers/risk_manager.py`. Insert before `{language_instruction}` (line 46):
@@ -699,7 +699,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(prompts): add structured highlights schema to risk manager prompt`
 
-- [ ] 14. Build HighlightCards Component
+- [x] 14. Build HighlightCards Component
 
   **What to do**:
   Create `web/frontend/components/HighlightCards.tsx` — a React component that renders structured highlight data as visually prominent cards. Must handle **all 9 category types**.
@@ -730,7 +730,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(ui): add HighlightCards component for structured report highlights`
 
-- [ ] 15. Integrate Highlights into MarkdownContent + ReportViewer
+- [x] 15. Integrate Highlights into MarkdownContent + ReportViewer
 
   **What to do**:
 
@@ -757,7 +757,7 @@ Add structured highlight cards above markdown narrative in the report viewer for
 
   **Commit**: YES | Message: `feat(ui): integrate highlight cards into MarkdownContent renderer`
 
-- [ ] 16. Add CSS Styles for Highlight Cards
+- [x] 16. Add CSS Styles for Highlight Cards
 
   **What to do**:
   Add styles to `web/frontend/app/globals.css` for all highlight card variants. Place after existing `.markdown-content` styles.
@@ -785,6 +785,13 @@ Add structured highlight cards above markdown narrative in the report viewer for
   **Commit**: YES | Message: `feat(ui): add CSS styles for highlight cards and signal badges`
 
 ## Final Verification Wave (4 parallel agents, ALL must APPROVE)
+> **Status update (2026-03-13):**
+> - Static verification completed locally: `npm run lint`, `npm run build`, prompt-file `py_compile`, `json-highlights` grep count = 12, and a runtime regression unittest covering the f-string prompt nodes with embedded JSON blocks.
+> - Fresh runtime generation was verified locally with a minimal real pipeline run: `TradingAgentsGraph(selected_analysts=['market'])` generated a new report set under `/tmp/report-highlights-e2e`.
+> - Generated output evidence: 9/9 subreports contained `json-highlights`; `complete_report.md` also contained the blocks as expected from raw concatenation.
+> - Frontend parser evidence: `parseHighlights()` successfully parsed and stripped the generated `market.md` block; `stripHighlightsBlocks()` removed all highlight blocks from the generated `complete_report.md`.
+> - Browser navigation / viewport-specific QA was not executed in this environment, so the final-wave checkboxes remain intentionally unchecked.
+
 - [ ] F1. Plan Compliance Audit — oracle
   Verify all tasks executed match plan. No scope creep. No files modified outside plan scope. Confirm Task 0 remained validation-only unless a real alias bug was reproduced.
 
