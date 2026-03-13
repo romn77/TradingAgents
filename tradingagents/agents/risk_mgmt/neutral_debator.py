@@ -33,9 +33,33 @@ Market Research Report: {market_research_report}
 Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
-Here is the current conversation history: {history} Here is the last response from the aggressive analyst: {current_aggressive_response} Here is the last response from the conservative analyst: {current_conservative_response}. If there are no responses from the other viewpoints, do not hallucinate and just present your point.
+Here is the current conversation history: {
+            history
+        } Here is the last response from the aggressive analyst: {
+            current_aggressive_response
+        } Here is the last response from the conservative analyst: {
+            current_conservative_response
+        }. If there are no responses from the other viewpoints, do not hallucinate and just present your point.
 
-Engage actively by analyzing both sides critically, addressing weaknesses in the aggressive and conservative arguments to advocate for a more balanced approach. Challenge each of their points to illustrate why a moderate risk strategy might offer the best of both worlds, providing growth potential while safeguarding against extreme volatility. Focus on debating rather than simply presenting data, aiming to show that a balanced view can lead to the most reliable outcomes. Output conversationally as if you are speaking without any special formatting.
+Engage actively by analyzing both sides critically, addressing weaknesses in the aggressive and conservative arguments to advocate for a more balanced approach. Challenge each of their points to illustrate why a moderate risk strategy might offer the best of both worlds, providing growth potential while safeguarding against extreme volatility. Focus on debating rather than simply presenting data, aiming to show that a balanced view can lead to the most reliable outcomes. Output conversationally, then append a structured highlights block as shown below.
+
+After your complete argument, append a structured highlights block:
+
+```json-highlights
+{{
+            "category": "risk_neutral",
+  "signal": "BUY or HOLD or SELL",
+  "signal_confidence": "high or medium or low",
+  "summary": "1-2 sentence summary of your neutral risk stance",
+  "stance_label": "Neutral",
+  "core_argument": "one sentence core thesis",
+  "risk_assessment": "high or moderate or low",
+  "key_recommendations": ["recommendation 1", "recommendation 2"]
+}}
+```
+
+Keep the `json-highlights` fence, JSON keys, and enum literals in English exactly as shown, even when the rest of the report is in another language. Free-form string values should follow the report language.
+
 {language_instruction}"""
 
         response = llm.invoke(prompt)

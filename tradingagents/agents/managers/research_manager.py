@@ -38,14 +38,18 @@ Here is the debate:
 Debate History:
 {history}
 
-Append a single ```json-highlights block at the end of your response with this schema:
+After your complete decision, append a structured highlights block in the following exact format:
 
 ```json-highlights
 {{
   "category": "research_decision",
-  "summary": "<concise summary of your final decision>",
-  "signal": "<BUY|HOLD|SELL>",
-  "rationale": "<key reasoning points>"
+  "signal": "BUY or HOLD or SELL",
+  "signal_confidence": "high or medium or low",
+  "summary": "1-2 sentence executive summary of your ruling",
+  "decision": "BUY or HOLD or SELL",
+  "aligned_with": "bull or bear",
+  "rationale": "one sentence explaining why you sided this way",
+  "action_items": ["action 1", "action 2", "action 3"]
 }}
 ```
 

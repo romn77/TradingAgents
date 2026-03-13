@@ -33,7 +33,21 @@ Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
 Here is the current conversation history: {history} Here is the last response from the aggressive analyst: {current_aggressive_response} Here is the last response from the neutral analyst: {current_neutral_response}. If there are no responses from the other viewpoints, do not hallucinate and just present your point.
 
-Engage by questioning their optimism and emphasizing the potential downsides they may have overlooked. Address each of their counterpoints to showcase why a conservative stance is ultimately the safest path for the firm's assets. Focus on debating and critiquing their arguments to demonstrate the strength of a low-risk strategy over their approaches. Output conversationally as if you are speaking without any special formatting.
+Engage by questioning their optimism and emphasizing the potential downsides they may have overlooked. Address each of their counterpoints to showcase why a conservative stance is ultimately the safest path for the firm's assets. Focus on debating and critiquing their arguments to demonstrate the strength of a low-risk strategy over their approaches. After your complete argument, append a structured highlights block:
+
+```json-highlights
+{{
+  "category": "risk_conservative",
+  "signal": "BUY or HOLD or SELL",
+  "signal_confidence": "high or medium or low",
+  "summary": "1-2 sentence summary of your conservative risk stance",
+  "stance_label": "Conservative",
+  "core_argument": "one sentence core thesis",
+  "risk_assessment": "high or moderate or low",
+  "key_recommendations": ["recommendation 1", "recommendation 2"]
+}}
+```
+Keep the `json-highlights` fence, JSON keys, and enum literals in English exactly as shown, even when the rest of the report is in another language. Free-form string values should follow the report language.
 {language_instruction}"""
 
         response = llm.invoke(prompt)
