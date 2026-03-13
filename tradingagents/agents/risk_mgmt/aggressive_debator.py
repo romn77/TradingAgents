@@ -1,4 +1,8 @@
 from tradingagents.agents.utils.agent_utils import get_language_instruction
+from tradingagents.agents.risk_mgmt.debate_phase import (
+    REBUTTAL_MODE,
+    get_risk_debate_mode,
+)
 
 
 def create_aggressive_debator(llm):
@@ -20,20 +24,40 @@ def create_aggressive_debator(llm):
         trader_decision = state["trader_investment_plan"]
         output_language = state.get("output_language", "en")
         language_instruction = get_language_instruction(output_language)
+        debate_mode = get_risk_debate_mode(risk_debate_state.get("count", 0))
 
-        prompt = f"""As the Aggressive Risk Analyst, your role is to actively champion high-reward, high-risk opportunities, emphasizing bold strategies and competitive advantages. When evaluating the trader's decision or plan, focus intently on the potential upside, growth potential, and innovative benefits—even when these come with elevated risk. Use the provided market data and sentiment analysis to strengthen your arguments and challenge the opposing views. Specifically, respond directly to each point made by the conservative and neutral analysts, countering with data-driven rebuttals and persuasive reasoning. Highlight where their caution might miss critical opportunities or where their assumptions may be overly conservative. Here is the trader's decision:
+        if debate_mode == REBUTTAL_MODE:
+            mode_instruction = """Debate mode: rebuttal
+This is a rebuttal round. Respond directly to each point made by the conservative and neutral analysts. Counter their claims with data-driven rebuttals, explain where their caution misses upside, and defend why your higher-risk posture is superior."""
+            task_instruction = """Your task is to create a compelling case for the trader's decision by questioning and critiquing the conservative and neutral stances to demonstrate why your high-reward perspective offers the best path forward."""
+            engagement_instruction = """Engage actively by addressing any specific concerns raised, refuting the weaknesses in their logic, and asserting the benefits of risk-taking to outpace market norms. Maintain a focus on debating and persuading, presented conversationally in your own voice. Challenge each counterpoint to underscore why a high-risk approach is optimal."""
+        else:
+            mode_instruction = """Debate mode: thesis
+This is the opening cycle of the risk debate. Lead with your own aggressive thesis on the trader's plan, emphasizing upside, catalysts, and the bold actions you support. If earlier comments exist, you may reference them briefly, but do not structure the response as a point-by-point rebuttal and do not mention missing counterpart arguments."""
+            task_instruction = """Your task is to present a standalone aggressive risk thesis for the trader's decision, showing where decisive positioning, asymmetry, or optionality could justify leaning into risk."""
+            engagement_instruction = """Focus on building your own high-conviction case in a conversational voice. Recommend the bold actions, sizing, or risk budget adjustments you believe best capture upside, and avoid meta commentary about whether counterpart arguments are available."""
+
+        prompt = f"""As the Aggressive Risk Analyst, your role is to actively champion high-reward, high-risk opportunities, emphasizing bold strategies and competitive advantages. When evaluating the trader's decision or plan, focus intently on the potential upside, growth potential, and innovative benefits—even when these come with elevated risk. Use the provided market data and sentiment analysis to strengthen your arguments and challenge the opposing views.
+
+{mode_instruction}
+
+Here is the trader's decision:
 
 {trader_decision}
 
-Your task is to create a compelling case for the trader's decision by questioning and critiquing the conservative and neutral stances to demonstrate why your high-reward perspective offers the best path forward. Incorporate insights from the following sources into your arguments:
+{task_instruction}
+Incorporate insights from the following sources into your arguments:
 
 Market Research Report: {market_research_report}
 Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
-Here is the current conversation history: {history} Here are the last arguments from the conservative analyst: {current_conservative_response} Here are the last arguments from the neutral analyst: {current_neutral_response}. If there are no responses from the other viewpoints, do not hallucinate and just present your point.
+Here is the current conversation history: {history}
+Here are the last arguments from the conservative analyst: {current_conservative_response or "No prior conservative argument is available in this opening cycle."}
+Here are the last arguments from the neutral analyst: {current_neutral_response or "No prior neutral argument is available in this opening cycle."}
 
-Engage actively by addressing any specific concerns raised, refuting the weaknesses in their logic, and asserting the benefits of risk-taking to outpace market norms. Maintain a focus on debating and persuading, presented conversationally in your own voice. Challenge each counterpoint to underscore why a high-risk approach is optimal. After your complete argument, append a structured highlights block:
+{engagement_instruction}
+After your complete argument, append a structured highlights block:
 
 ```json-highlights
 {{
